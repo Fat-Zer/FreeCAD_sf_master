@@ -463,7 +463,7 @@ Py::Object View3DInventorPy::viewRotateLeft(const Py::Tuple& args)
       SbRotation rot = cam->orientation.getValue();
       SbVec3f vdir(0, 0, -1);
       rot.multVec(vdir, vdir);
-      SbRotation nrot(vdir,float( M_PI/2));
+      SbRotation nrot(vdir, (float)M_PI/2);
       cam->orientation.setValue(rot*nrot);
     }
     catch (const Base::Exception& e) {
@@ -489,7 +489,7 @@ Py::Object View3DInventorPy::viewRotateRight(const Py::Tuple& args)
       SbRotation rot = cam->orientation.getValue();
       SbVec3f vdir(0, 0, -1);
       rot.multVec(vdir, vdir);
-      SbRotation nrot(vdir, float(-M_PI/2));
+      SbRotation nrot(vdir, (float)-M_PI/2);
       cam->orientation.setValue(rot*nrot);
     }
     catch (const Base::Exception& e) {
