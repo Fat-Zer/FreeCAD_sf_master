@@ -98,6 +98,7 @@
 #include "Plane.h"
 #include "Line.h"
 #include "Part.h"
+#include "Origin.h"
 #include "MaterialObject.h"
 #include "Expression.h"
 
@@ -1127,6 +1128,7 @@ void Application::initTypes(void)
     App ::Plane                     ::init();
     App ::Line                      ::init();
     App ::Part                      ::init();
+    App ::Origin                    ::init();
 
     // Expression classes
     App ::Expression                ::init();
