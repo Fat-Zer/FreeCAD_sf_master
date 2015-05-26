@@ -98,6 +98,7 @@
 #include <Gui/SoFCUnifiedSelection.h>
 
 #include <Mod/Part/App/Geometry.h>
+#include <Mod/Part/App/BodyBase.h>
 #include <Mod/Sketcher/App/SketchObject.h>
 #include <Mod/Sketcher/App/Sketch.h>
 
@@ -489,7 +490,7 @@ void ViewProviderSketch::getCoordsOnSketchPlane(double &u, double &v,const SbVec
     Base::Vector3d R0(0,0,0),RN(0,0,1),RX(1,0,0),RY(0,1,0);
 
     // move to position of Sketch
-    Base::Placement Plz = getSketchObject()->Placement.getValue();
+    Base::Placement Plz = getPlacement();
     R0 = Plz.getPosition() ;
     Base::Rotation tmp(Plz.getRotation());
     tmp.multVec(RN,RN);
@@ -1867,7 +1868,7 @@ void ViewProviderSketch::doBoxSelection(const SbVec2s &startPos, const SbVec2s &
     Sketcher::SketchObject *sketchObject = getSketchObject();
     App::Document *doc = sketchObject->getDocument();
 
-    Base::Placement Plm = sketchObject->Placement.getValue();
+    Base::Placement Plm = getPlacement();
 
     int intGeoCount = sketchObject->getHighestCurveIndex() + 1;
     int extGeoCount = sketchObject->getExternalGeometryCount();
@@ -3951,7 +3952,7 @@ void ViewProviderSketch::rebuildConstraintsVisual(void)
         Base::Vector3d RN(0,0,1);
 
         // move to position of Sketch
-        Base::Placement Plz = getSketchObject()->Placement.getValue();
+        Base::Placement Plz = getPlacement();
         Base::Rotation tmp(Plz.getRotation());
         tmp.multVec(RN,RN);
         Plz.setRotation(tmp);
@@ -4146,7 +4147,7 @@ void ViewProviderSketch::onChanged(const App::Property *prop)
 }
 
 void ViewProviderSketch::attach(App::DocumentObject *pcFeat)
-{
+{    
     ViewProviderPart::attach(pcFeat);
 }
 
@@ -4157,6 +4158,19 @@ void ViewProviderSketch::setupContextMenu(QMenu *menu, QObject *receiver, const 
 
 bool ViewProviderSketch::setEdit(int ModNum)
 {
+    //find the Part object the feature belongs to, TODO: use GRAPH methods
+    App::DocumentObject* search = getSketchObject();
+    for(Part::BodyBase* b : getSketchObject()->getDocument()->getObjectsOfType<Part::BodyBase>()) {
+        if(b->hasFeature(getSketchObject())) {
+            search = b;
+        }            
+    }    
+    for(App::Part* p : getSketchObject()->getDocument()->getObjectsOfType<App::Part>()) {
+        if(p->hasObject(search)) {
+            parentPart = p;
+        }            
+    }
+    
     // always change to sketcher WB, remember where we come from 
     oldWb = Gui::Command::assureWorkbench("SketcherWorkbench");
 
@@ -4591,7 +4605,7 @@ void ViewProviderSketch::unsetEdit(int ModNum)
 
 void ViewProviderSketch::setEditViewer(Gui::View3DInventorViewer* viewer, int ModNum)
 {
-    Base::Placement plm = getSketchObject()->Placement.getValue();
+    Base::Placement plm = getPlacement();
     Base::Rotation tmp(plm.getRotation());
 
     SbRotation rot((float)tmp[0],(float)tmp[1],(float)tmp[2],(float)tmp[3]);
@@ -4876,3 +4890,14 @@ bool ViewProviderSketch::onDelete(const std::vector<std::string> &subList)
     // if not in edit delete the whole object
     return PartGui::ViewProviderPart::onDelete(subList);
 }
+
+Base::Placement ViewProviderSketch::getPlacement() {
+    //TODO: use GRAPH placement handling, as this function right now only works with one parent 
+    //part object
+    Base::Placement Plz = getSketchObject()->Placement.getValue();
+    if(parentPart)
+        return parentPart->Placement.getValue()*Plz;
+    
+    return Plz;
+}
+
