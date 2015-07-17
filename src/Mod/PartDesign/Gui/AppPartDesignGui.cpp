@@ -57,6 +57,7 @@
 #include "ViewProviderThickness.h"
 #include "ViewProviderPipe.h"
 #include "ViewProviderLoft.h"
+#include "ViewProviderShapeBinder.h"
 
 //#include "resources/qrc_PartDesign.cpp"
 
@@ -126,6 +127,7 @@ void PartDesignGuiExport initPartDesignGui()
     PartDesignGui::ViewProviderDatumLine     ::init();
     PartDesignGui::ViewProviderDatumPlane    ::init();
     PartDesignGui::ViewProviderDatumCoordinateSystem::init();
+    PartDesignGui::ViewProviderShapeBinder   ::init();
     PartDesignGui::ViewProviderBoolean       ::init();
     PartDesignGui::ViewProviderAddSub        ::init();
     PartDesignGui::ViewProviderPrimitive     ::init();

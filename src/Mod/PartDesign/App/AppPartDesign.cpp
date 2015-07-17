@@ -28,7 +28,7 @@
 
 #include <Base/Console.h>
 #include <Base/Interpreter.h>
- 
+
 #include "FeaturePad.h"
 #include "FeatureSolid.h"
 #include "FeaturePocket.h"
@@ -57,6 +57,7 @@
 #include "FeatureThickness.h"
 #include "FeaturePipe.h"
 #include "FeatureLoft.h"
+#include "ShapeBinder.h"
 
 extern struct PyMethodDef PartDesign_methods[];
 
@@ -84,7 +85,7 @@ void PartDesignExport init_PartDesign()
     // NOTE: To finish the initialization of our own type objects we must
     // call PyType_Ready, otherwise we run into a segmentation fault, later on.
     // This function is responsible for adding inherited slots from a type's base class.
- 
+
     PartDesign::Feature            ::init();
     PartDesign::Solid              ::init();
     PartDesign::DressUp            ::init();
@@ -113,6 +114,8 @@ void PartDesignExport init_PartDesign()
     PartDesign::Loft               ::init();
     PartDesign::AdditiveLoft       ::init();
     PartDesign::SubtractiveLoft    ::init();
+    PartDesign::ShapeBinder        ::init();
+    PartDesign::ShapeBinder2D      ::init();
     PartDesign::Plane              ::init();
     PartDesign::Line               ::init();
     PartDesign::Point              ::init();
@@ -143,7 +146,6 @@ void PartDesignExport init_PartDesign()
     PartDesign::Wedge              ::init();
     PartDesign::AdditiveWedge      ::init();
     PartDesign::SubtractiveWedge   ::init();
-    
 }
 
 } // extern "C"
