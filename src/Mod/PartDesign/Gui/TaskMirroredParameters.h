@@ -72,6 +72,7 @@ protected:
 private:
     void setupUI();
     void updateUI();
+    ComboLinks planeLinks;
 
 private:
     Ui_TaskMirroredParameters* ui;
