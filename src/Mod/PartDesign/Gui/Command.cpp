@@ -667,7 +667,11 @@ void CmdPartDesignNewSketch::activated(int iMsg)
     PartDesign::Body *pcActiveBody = PartDesignGui::getBody(/*messageIfNot = */true);
 
     // No PartDesign feature without Body past FreeCAD 0.13
-    if(!pcActiveBody) return;
+    if(!pcActiveBody) {
+        Gui::CommandManager &rcCmdMgr = Gui::Application::Instance->commandManager();
+        rcCmdMgr.runCommandByName("Sketcher_NewSketch");
+        return;
+    }
 
     Gui::SelectionFilter SketchFilter("SELECT Sketcher::SketchObject COUNT 1");
     Gui::SelectionFilter FaceFilter  ("SELECT Part::Feature SUBELEMENT Face COUNT 1");
@@ -893,10 +897,9 @@ bool CmdPartDesignNewSketch::isActive(void)
 void finishFeature(const Gui::Command* cmd, const std::string& FeatName, const bool hidePrevSolid = true)
 {
     PartDesign::Body *pcActiveBody = PartDesignGui::getBody(/*messageIfNot = */false);
-    if (pcActiveBody == 0)
-        throw Base::Exception("No active body!");
 
-    cmd->doCommand(cmd->Doc,"App.activeDocument().%s.addFeature(App.activeDocument().%s)",
+    if (pcActiveBody)
+        cmd->doCommand(cmd->Doc,"App.activeDocument().%s.addFeature(App.activeDocument().%s)",
                    pcActiveBody->getNameInDocument(), FeatName.c_str());
 
     if (pcActiveBody != NULL) {
@@ -939,8 +942,8 @@ void finishFeature(const Gui::Command* cmd, const std::string& FeatName, const b
     for (std::vector<App::DocumentObject*>::iterator s = sketches.begin(); s != sketches.end(); s++) {
  
         // Check whether this plane belongs to the active body   
-        if (!pcActiveBody->hasFeature(*s)) {
-            if(pcActivePart->hasObject(*s, true))
+        if (pcActiveBody && !pcActiveBody->hasFeature(*s)) {
+            if(pcActivePart && pcActivePart->hasObject(*s, true))
                 status.push_back(PartDesignGui::TaskFeaturePick::otherBody);
             else 
                 status.push_back(PartDesignGui::TaskFeaturePick::otherPart);
@@ -968,7 +971,7 @@ void finishFeature(const Gui::Command* cmd, const std::string& FeatName, const b
             continue;
         }
         
-        if (pcActiveBody->isAfterTip(*s)){
+        if (pcActiveBody && pcActiveBody->isAfterTip(*s)){
             status.push_back(PartDesignGui::TaskFeaturePick::afterTip);
             continue;
         }
@@ -1005,9 +1008,6 @@ void finishFeature(const Gui::Command* cmd, const std::string& FeatName, const b
 void prepareSketchBased(Gui::Command* cmd, const std::string& which,
                         boost::function<void (Part::Part2DObject*, std::string)> func)
 {
-    PartDesign::Body *pcActiveBody = PartDesignGui::getBody(/*messageIfNot = */true);
-    if (!pcActiveBody) return;
-
     bool bNoSketchWasSelected = false;
     // Get a valid sketch from the user
     // First check selections
@@ -1050,8 +1050,6 @@ void prepareSketchBased(Gui::Command* cmd, const std::string& which,
                     which.c_str(), FeatName.c_str());
         Gui::Command::doCommand(Gui::Command::Doc,"App.activeDocument().%s.Sketch = App.activeDocument().%s",
                     FeatName.c_str(), sketch->getNameInDocument());
-        //Gui::Command::doCommand(cmd->Doc,"App.activeDocument().%s.addFeature(App.activeDocument().%s)",
-        //            pcActiveBody->getNameInDocument(), FeatName.c_str());
 
         func(sketch, FeatName);
     };
