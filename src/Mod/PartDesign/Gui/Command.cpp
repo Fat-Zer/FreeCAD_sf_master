@@ -522,9 +522,7 @@ void UnifiedDatumCommand(Gui::Command &cmd, Base::Type type, std::string name)
             cmd.openCommand(tmp.c_str());
             cmd.doCommand(Gui::Command::Gui,"Gui.activeDocument().setEdit('%s')",support.getValue()->getNameInDocument());
         } else {
-            PartDesign::Body *pcActiveBody = PartDesignGui::getBody(/*messageIfNot = */true);
-            if (pcActiveBody == 0)
-                return;
+            PartDesign::Body *pcActiveBody = PartDesignGui::getBody(/*messageIfNot = */false);
 
             std::string FeatName = cmd.getUniqueObjectName(name.c_str());
 
@@ -547,8 +545,10 @@ void UnifiedDatumCommand(Gui::Command &cmd, Base::Type type, std::string name)
                     QMessageBox::information(Gui::getMainWindow(),QObject::tr("Invalid selection"), QObject::tr("There are no attachment modes that fit seleted objects. Select something else."));
                 }
             }
-            cmd.doCommand(Gui::Command::Doc,"App.activeDocument().%s.addFeature(App.activeDocument().%s)",
-                           pcActiveBody->getNameInDocument(), FeatName.c_str());
+            if (pcActiveBody) {
+                cmd.doCommand(Gui::Command::Doc,"App.activeDocument().%s.addFeature(App.activeDocument().%s)",
+                               pcActiveBody->getNameInDocument(), FeatName.c_str());
+            }
             cmd.doCommand(Gui::Command::Doc,"App.activeDocument().recompute()");  // recompute the feature based on its references
             cmd.doCommand(Gui::Command::Gui,"Gui.activeDocument().setEdit('%s')",FeatName.c_str());
         }
