@@ -182,7 +182,7 @@ App::DocumentObject* TaskTransformedParameters::getPartPlanes(const char* str) c
 
     //TODO: Adjust to GRAPH handling when available
     App::DocumentObject* obj = getObject();
-    App::Part* part = getPartFor(obj, true);
+    App::Part* part = getPartFor(obj, false);
     
     std::vector<App::DocumentObject*> origs = part->getObjectsOfType(App::Origin::getClassTypeId());
     if(origs.size()<1)
@@ -204,7 +204,7 @@ App::DocumentObject* TaskTransformedParameters::getPartLines(const char* str) co
 
     //TODO: Adjust to GRAPH handling when available
     App::DocumentObject* obj = getObject();
-    App::Part* part = getPartFor(obj, true);
+    App::Part* part = getPartFor(obj, false);
     
     std::vector<App::DocumentObject*> origs = part->getObjectsOfType(App::Origin::getClassTypeId());
     if(origs.size()<1)
