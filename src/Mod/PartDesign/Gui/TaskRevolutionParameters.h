@@ -50,7 +50,7 @@ class TaskRevolutionParameters : public TaskSketchBasedParameters
     Q_OBJECT
 
 public:
-    TaskRevolutionParameters(ViewProviderRevolution *RevolutionView,QWidget *parent = 0);
+    TaskRevolutionParameters(ViewProvider* RevolutionView,QWidget *parent = 0);
     ~TaskRevolutionParameters();
 
     void getReferenceAxis(App::DocumentObject *&obj, std::vector<std::string> &sub) const;
@@ -77,6 +77,13 @@ protected:
     void onSelectionChanged(const Gui::SelectionChanges& msg);
     void changeEvent(QEvent *e);
 
+    //mirrors of revolution's or groove's properties
+    //should have been done by inheriting revolution and groove from common class...
+    App::PropertyAngle* propAngle;
+    App::PropertyBool* propReversed;
+    App::PropertyBool* propMidPlane;
+    App::PropertyLinkSub* propReferenceAxis;
+
 private:
     void updateUI();
 
@@ -101,11 +108,11 @@ class TaskDlgRevolutionParameters : public TaskDlgSketchBasedParameters
     Q_OBJECT
 
 public:
-    TaskDlgRevolutionParameters(ViewProviderRevolution *RevolutionView);
+    TaskDlgRevolutionParameters(PartDesignGui::ViewProvider *RevolutionView);
     ~TaskDlgRevolutionParameters();
 
-    ViewProviderRevolution* getRevolutionView() const
-    { return static_cast<ViewProviderRevolution*>(vp); }
+    ViewProvider* getRevolutionView() const
+    { return vp; }
 
 public:    
     /// is called by the framework if the dialog is accepted (Ok)
