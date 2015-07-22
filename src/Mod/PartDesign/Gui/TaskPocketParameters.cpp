@@ -27,7 +27,6 @@
 # include <sstream>
 # include <QRegExp>
 # include <QTextStream>
-# include <QMessageBox>
 # include <Precision.hxx>
 #endif
 
@@ -147,7 +146,7 @@ TaskPocketParameters::TaskPocketParameters(ViewProviderPocket *PocketView,QWidge
     ui->checkBoxReversed->setVisible(true);
 
     updateUI(index);
- 
+
     //// check if the sketch has support
     //Sketcher::SketchObject *pcSketch;
     //if (pcPocket->Sketch.getValue()) {
@@ -161,7 +160,7 @@ TaskPocketParameters::TaskPocketParameters(ViewProviderPocket *PocketView,QWidge
 }
 
 void TaskPocketParameters::updateUI(int index)
-{ 
+{
     if (index == 0) { // Only this option requires a numeric value // Dimension
         ui->pocketLength->setVisible(true);
         ui->pocketLength->setEnabled(true);
@@ -191,7 +190,7 @@ void TaskPocketParameters::updateUI(int index)
         ui->pocketLength->setEnabled(false);
         ui->pocketLength->setVisible(false);
         ui->checkBoxMidplane->setEnabled(false); // Can't have a midplane to a single face
-        ui->checkBoxReversed->setEnabled(false); // Will change the direction it seeks for its first face? 
+        ui->checkBoxReversed->setEnabled(false); // Will change the direction it seeks for its first face?
                                                  // Doesnt work so is currently disabled. Fix probably lies 
                                                  // somwhere in IF block on line 125 of FeaturePocket.cpp
         ui->labelLength->setVisible(false);
@@ -343,12 +342,16 @@ int TaskPocketParameters::getMode(void) const
     return ui->changeMode->currentIndex();
 }
 
-QByteArray TaskPocketParameters::getFaceName(void) const
+QString TaskPocketParameters::getFaceName(void) const
 {
-    if (getMode() == 3)
-        return getFaceReference(ui->lineFaceName->text(), ui->lineFaceName->property("FaceName").toString()).toLatin1();
-    else
-        return "";
+    // TODO Make it return None rather than empty string (2015-11-03, Fat-Zer)
+    if (getMode() == 3) {
+        QString faceName = ui->lineFaceName->property("FaceName").toString();
+        if (!faceName.isEmpty()) {
+            return getFaceReference(ui->lineFaceName->text(), faceName);
+        }
+    }
+    return QString ();
 }
 
 TaskPocketParameters::~TaskPocketParameters()
@@ -397,19 +400,15 @@ void TaskPocketParameters::apply()
     //Gui::Command::openCommand("Pocket changed");
     ui->pocketLength->apply();
     Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Type = %u",name.c_str(),getMode());
-    std::string facename = getFaceName().data();
+    QString facename = getFaceName();
 
-    if (!facename.empty()) {
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.UpToFace = %s", name.c_str(), facename.c_str());
+    if (!facename.isEmpty()) {
+        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.UpToFace = %s",
+                name.c_str(), facename.toLatin1().data() );
     } else
         Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.UpToFace = None", name.c_str());
     Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Reversed = %i", name.c_str(), getReversed()?1:0);
     Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Offset = %f", name.c_str(), getOffset());
-    Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.recompute()");
-    if (!vp->getObject()->isValid())
-        throw Base::Exception(vp->getObject()->getStatusString());
-    Gui::Command::doCommand(Gui::Command::Gui,"Gui.activeDocument().resetEdit()");
-    Gui::Command::commitCommand();
 }
 
 //**************************************************************************
@@ -435,15 +434,9 @@ TaskDlgPocketParameters::~TaskDlgPocketParameters()
 
 bool TaskDlgPocketParameters::accept()
 {
-    try {
-        parameter->apply();
-    }
-    catch (const Base::Exception& e) {
-        QMessageBox::warning(parameter, tr("Input error"), QString::fromAscii(e.what()));
-        return false;
-    }
+    parameter->apply();
 
-    return true;
+    return TaskDlgSketchBasedParameters::accept();
 }
 
 
