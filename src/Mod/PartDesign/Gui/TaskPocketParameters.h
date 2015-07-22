@@ -58,7 +58,7 @@ public:
     bool getMidplane(void) const;
     bool getReversed(void) const;
     int getMode(void) const;
-    QByteArray getFaceName(void) const;
+    QString getFaceName(void) const;
 
 private Q_SLOTS:
     void onLengthChanged(double);
