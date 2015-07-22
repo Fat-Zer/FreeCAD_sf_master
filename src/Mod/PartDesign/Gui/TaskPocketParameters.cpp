@@ -27,7 +27,6 @@
 # include <sstream>
 # include <QRegExp>
 # include <QTextStream>
-# include <QMessageBox>
 # include <Precision.hxx>
 #endif
 
@@ -340,12 +339,15 @@ int TaskPocketParameters::getMode(void) const
     return ui->changeMode->currentIndex();
 }
 
-QByteArray TaskPocketParameters::getFaceName(void) const
+QString TaskPocketParameters::getFaceName(void) const
 {
-    if (getMode() == 3)
-        return getFaceReference(ui->lineFaceName->text(), ui->lineFaceName->property("FaceName").toString()).toLatin1();
-    else
-        return "";
+    if (getMode() == 3) {
+        QString faceName = ui->lineFaceName->property("FaceName").toString();
+        if (!faceName.isEmpty()) {
+            return getFaceReference(ui->lineFaceName->text(), faceName);
+        }
+    }
+    return QString();
 }
 
 TaskPocketParameters::~TaskPocketParameters()
@@ -412,30 +414,22 @@ bool TaskDlgPocketParameters::accept()
 {
     std::string name = vp->getObject()->getNameInDocument();
 
-    try {
-        //Gui::Command::openCommand("Pocket changed");
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Length = %f",name.c_str(),parameter->getLength());
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Reversed = %i",name.c_str(),parameter->getReversed()?1:0);
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Offset = %f",name.c_str(),parameter->getOffset());
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Type = %u",name.c_str(),parameter->getMode());
-        std::string facename = parameter->getFaceName().data();
+    //Gui::Command::openCommand("Pocket changed");
+    Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Length = %f",name.c_str(),parameter->getLength());
+    Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Reversed = %i",name.c_str(),parameter->getReversed()?1:0);
+    Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Offset = %f",name.c_str(),parameter->getOffset());
+    Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Type = %u",name.c_str(),parameter->getMode());
 
-        if (!facename.empty()) {
-            Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.UpToFace = %s", name.c_str(), facename.c_str());
-        } else
-            Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.UpToFace = None", name.c_str());
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.recompute()");
-        if (!vp->getObject()->isValid())
-            throw Base::Exception(vp->getObject()->getStatusString());
-        Gui::Command::doCommand(Gui::Command::Gui,"Gui.activeDocument().resetEdit()");
-        Gui::Command::commitCommand();
-    }
-    catch (const Base::Exception& e) {
-        QMessageBox::warning(parameter, tr("Input error"), QString::fromAscii(e.what()));
-        return false;
+    QString facename = parameter->getFaceName();
+
+    if (!facename.isEmpty()) {
+        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.UpToFace = %s", name.c_str(),
+                facename.toLatin1().data());
+    } else {
+        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.UpToFace = None", name.c_str());
     }
 
-    return true;
+    return TaskDlgSketchBasedParameters::accept();
 }
 
 

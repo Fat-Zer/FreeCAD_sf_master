@@ -44,7 +44,6 @@ class ViewProvider;
 namespace PartDesignGui { 
 
 
-
 class TaskPadParameters : public TaskSketchBasedParameters
 {
     Q_OBJECT
@@ -59,7 +58,7 @@ public:
     double getOffset(void) const;
     bool   getReversed(void) const;
     bool   getMidplane(void) const;
-    QByteArray getFaceName(void) const;
+    QString getFaceName(void) const;
     void saveHistory(void);
 
 private Q_SLOTS:

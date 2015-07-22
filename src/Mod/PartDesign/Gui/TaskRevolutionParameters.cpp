@@ -394,20 +394,7 @@ TaskDlgRevolutionParameters::~TaskDlgRevolutionParameters()
 
 bool TaskDlgRevolutionParameters::accept()
 {
-    App::DocumentObject* revolve = vp->getObject();
-    std::string name = revolve->getNameInDocument();
-
-    // retrieve sketch and its support object
-    App::DocumentObject* sketch = 0;
-    App::DocumentObject* support = 0;
-    if (revolve->getTypeId().isDerivedFrom(PartDesign::Revolution::getClassTypeId())) {
-        sketch = static_cast<PartDesign::Revolution*>(revolve)->Sketch.getValue();
-        try{//throws if no base
-            support = static_cast<PartDesign::Revolution*>(revolve)->getBaseObject();
-        } catch (Base::Exception) {
-            support = NULL;
-        }
-    }
+    std::string name = vp->getObject()->getNameInDocument();
 
     //Gui::Command::openCommand("Revolution changed");
     Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Angle = %f",name.c_str(),parameter->getAngle());
@@ -418,17 +405,8 @@ bool TaskDlgRevolutionParameters::accept()
     Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.ReferenceAxis = %s",name.c_str(),axis.c_str());
     Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Midplane = %i",name.c_str(),parameter->getMidplane()?1:0);
     Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Reversed = %i",name.c_str(),parameter->getReversed()?1:0);
-    Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.recompute()");
-    if (revolve->isValid()) {
-        if (sketch)
-            Gui::Command::doCommand(Gui::Command::Gui,"Gui.activeDocument().hide(\"%s\")",sketch->getNameInDocument());
-        if (support)
-            Gui::Command::doCommand(Gui::Command::Gui,"Gui.activeDocument().hide(\"%s\")",support->getNameInDocument());
-    }
-    Gui::Command::doCommand(Gui::Command::Gui,"Gui.activeDocument().resetEdit()");
-    Gui::Command::commitCommand();
 
-    return true;
+    return TaskDlgSketchBasedParameters::accept();
 }
 
 
