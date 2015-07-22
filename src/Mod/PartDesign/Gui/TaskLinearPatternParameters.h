@@ -84,6 +84,8 @@ private:
 private:
     Ui_TaskLinearPatternParameters* ui;
     QTimer* updateViewTimer;
+
+    ComboLinks dirLinks;
 };
 
 
