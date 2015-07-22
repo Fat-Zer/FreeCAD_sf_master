@@ -454,7 +454,7 @@ bool TaskDlgPadParameters::accept()
 {
     std::string name = vp->getObject()->getNameInDocument();
 
-    // save the history 
+    // save the history
     parameter->saveHistory();
 
     try {
