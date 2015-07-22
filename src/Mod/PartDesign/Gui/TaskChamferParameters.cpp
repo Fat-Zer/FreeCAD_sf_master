@@ -182,7 +182,7 @@ bool TaskDlgChamferParameters::accept()
 {
     parameter->showObject();
 
-    std::string name = DressUpView->getObject()->getNameInDocument();
+    std::string name = vp->getObject()->getNameInDocument();
     TaskChamferParameters* chamferparameter = static_cast<TaskChamferParameters*>(parameter);
 
     Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Size = %f",name.c_str(),chamferparameter->getLength());

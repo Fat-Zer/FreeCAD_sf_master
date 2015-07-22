@@ -182,7 +182,7 @@ bool TaskDlgFilletParameters::accept()
 {
     parameter->showObject();
 
-    std::string name = DressUpView->getObject()->getNameInDocument();
+    std::string name = vp->getObject()->getNameInDocument();
     TaskFilletParameters* filletparameter = static_cast<TaskFilletParameters*>(parameter);
 
     Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Radius = %f",name.c_str(),filletparameter->getLength());
