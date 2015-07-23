@@ -19,7 +19,7 @@
  *   Suite 330, Boston, MA  02111-1307, USA                                *
  *                                                                         *
  ***************************************************************************/
- 
+
 
 #ifndef GUI_TASKVIEW_TaskPocketParameters_H
 #define GUI_TASKVIEW_TaskPocketParameters_H
@@ -41,8 +41,7 @@ namespace Gui {
 class ViewProvider;
 }
 
-namespace PartDesignGui { 
-
+namespace PartDesignGui {
 
 
 class TaskPocketParameters : public TaskSketchBasedParameters
@@ -50,24 +49,26 @@ class TaskPocketParameters : public TaskSketchBasedParameters
     Q_OBJECT
 
 public:
-    TaskPocketParameters(ViewProviderPocket *PocketView,QWidget *parent = 0);
+    TaskPocketParameters(ViewProviderPocket *PocketView, QWidget *parent = 0, bool newObj=false);
     ~TaskPocketParameters();
 
     double getLength(void) const;
     double getOffset(void) const;
     bool getMidplane(void) const;
     bool getReversed(void) const;
-    int getMode(void) const;
     QString getFaceName(void) const;
+    int getMode(void) const;
+
+    void saveHistory(void);
 
 private Q_SLOTS:
     void onLengthChanged(double);
     void onOffsetChanged(double);
     void onMidplaneChanged(bool);
     void onReversedChanged(bool);
-    void onModeChanged(int);
     void onButtonFace(const bool pressed = true);
     void onFaceName(const QString& text);
+    void onModeChanged(int);
 
 protected:
     void changeEvent(QEvent *e);
