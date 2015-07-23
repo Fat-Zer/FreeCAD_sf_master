@@ -41,7 +41,7 @@ namespace Gui {
 class ViewProvider;
 }
 
-namespace PartDesignGui { 
+namespace PartDesignGui {
 
 
 class TaskPadParameters : public TaskSketchBasedParameters
@@ -49,27 +49,28 @@ class TaskPadParameters : public TaskSketchBasedParameters
     Q_OBJECT
 
 public:
-    TaskPadParameters(ViewProviderPad *PadView,bool newObj=false,QWidget *parent = 0);
+    TaskPadParameters(ViewProviderPad *PadView, QWidget *parent = 0, bool newObj=false);
     ~TaskPadParameters();
 
-    int getMode(void) const;
     double getLength(void) const;
     double getLength2(void) const;
     double getOffset(void) const;
-    bool   getReversed(void) const;
-    bool   getMidplane(void) const;
+    bool getMidplane(void) const;
+    bool getReversed(void) const;
     QString getFaceName(void) const;
+    int getMode(void) const;
+
     void saveHistory(void);
 
 private Q_SLOTS:
     void onLengthChanged(double);
-    void onMidplane(bool);
-    void onReversed(bool);
     void onLength2Changed(double);
     void onOffsetChanged(double);
-    void onModeChanged(int);
+    void onMidplaneChanged(bool);
+    void onReversedChanged(bool);
     void onButtonFace(const bool pressed = true);
     void onFaceName(const QString& text);
+    void onModeChanged(int);
 
 protected:
     void changeEvent(QEvent *e);
@@ -99,7 +100,6 @@ public:
 public:
     /// is called by the framework if the dialog is accepted (Ok)
     virtual bool accept();
-    /// is called by the framework if the dialog is rejected (Cancel)
 
 protected:
     TaskPadParameters  *parameter;
