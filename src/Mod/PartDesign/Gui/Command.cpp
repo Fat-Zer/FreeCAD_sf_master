@@ -1826,7 +1826,7 @@ void CmdPartDesignMirrored::activated(int iMsg)
         return;
 
         if(features.front()->isDerivedFrom(PartDesign::SketchBased::getClassTypeId())) {
-            Part::Part2DObject *sketch = (static_cast<PartDesign::SketchBased*>(features.front()))->getVerifiedSketch();
+            Part::Part2DObject *sketch = (static_cast<PartDesign::SketchBased*>(features.front()))->getVerifiedSketch(/* silent =*/ true);
             if (sketch)
                 Gui::Command::doCommand(Doc,"App.activeDocument().%s.MirrorPlane = (App.activeDocument().%s, [\"V_Axis\"])",
                         FeatName.c_str(), sketch->getNameInDocument());
@@ -1873,7 +1873,7 @@ void CmdPartDesignLinearPattern::activated(int iMsg)
             return;
 
         if(features.front()->isDerivedFrom(PartDesign::SketchBased::getClassTypeId())) {
-            Part::Part2DObject *sketch = (static_cast<PartDesign::SketchBased*>(features.front()))->getVerifiedSketch();
+            Part::Part2DObject *sketch = (static_cast<PartDesign::SketchBased*>(features.front()))->getVerifiedSketch(/* silent =*/ true);
             if (sketch)
                 doCommand(Doc,"App.activeDocument().%s.Direction = (App.activeDocument().%s, [\"H_Axis\"])",
                         FeatName.c_str(), sketch->getNameInDocument());
@@ -1922,7 +1922,7 @@ void CmdPartDesignPolarPattern::activated(int iMsg)
             return;
 
         if(features.front()->isDerivedFrom(PartDesign::SketchBased::getClassTypeId())) {
-            Part::Part2DObject *sketch = (static_cast<PartDesign::SketchBased*>(features.front()))->getVerifiedSketch();
+            Part::Part2DObject *sketch = (static_cast<PartDesign::SketchBased*>(features.front()))->getVerifiedSketch(/* silent =*/ true);
             if (sketch)
                 doCommand(Doc,"App.activeDocument().%s.Axis = (App.activeDocument().%s, [\"N_Axis\"])",
                         FeatName.c_str(), sketch->getNameInDocument());
