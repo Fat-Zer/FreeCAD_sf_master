@@ -239,29 +239,13 @@ TaskDlgScaledParameters::TaskDlgScaledParameters(ViewProviderScaled *ScaledView)
 
 bool TaskDlgScaledParameters::accept()
 {
-    std::string name = TransformedView->getObject()->getNameInDocument();
+    std::string name = vp->getObject()->getNameInDocument();
 
-    try {
-        //Gui::Command::openCommand("Scaled changed");
-        // Handle Originals
-        if (!TaskDlgTransformedParameters::accept())
-            return false;
+    TaskScaledParameters* scaledParameter = static_cast<TaskScaledParameters*>(parameter);
+    Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Factor = %f",name.c_str(),scaledParameter->getFactor());
+    Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Occurrences = %u",name.c_str(),scaledParameter->getOccurrences());
 
-        TaskScaledParameters* scaledParameter = static_cast<TaskScaledParameters*>(parameter);
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Factor = %f",name.c_str(),scaledParameter->getFactor());
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Occurrences = %u",name.c_str(),scaledParameter->getOccurrences());
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.recompute()");
-        if (!TransformedView->getObject()->isValid())
-            throw Base::Exception(TransformedView->getObject()->getStatusString());
-        Gui::Command::doCommand(Gui::Command::Gui,"Gui.activeDocument().resetEdit()");
-        Gui::Command::commitCommand();
-    }
-    catch (const Base::Exception& e) {
-        QMessageBox::warning(parameter, tr("Input error"), QString::fromAscii(e.what()));
-        return false;
-    }
-
-    return true;
+    return TaskDlgTransformedParameters::accept();
 }
 
 #include "moc_TaskScaledParameters.cpp"

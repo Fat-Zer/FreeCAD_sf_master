@@ -398,38 +398,23 @@ TaskDlgLinearPatternParameters::TaskDlgLinearPatternParameters(ViewProviderLinea
 
 bool TaskDlgLinearPatternParameters::accept()
 {
-    std::string name = TransformedView->getObject()->getNameInDocument();
+    std::string name = vp->getObject()->getNameInDocument();
 
-    try {
-        // Handle Originals
-        if (!TaskDlgTransformedParameters::accept())
-            return false;
-
-        TaskLinearPatternParameters* linearpatternParameter = static_cast<TaskLinearPatternParameters*>(parameter);
-        std::vector<std::string> directions;
-        App::DocumentObject* obj;
-        linearpatternParameter->getDirection(obj, directions);
-        std::string direction = getPythonStr(obj, directions);
-        if (!direction.empty() && obj) {
-            Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Direction = %s", name.c_str(), direction.c_str());
-        } else {
-            Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Direction = None", name.c_str());
-        }
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Reversed = %u",name.c_str(),linearpatternParameter->getReverse());
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Length = %f",name.c_str(),linearpatternParameter->getLength());
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Occurrences = %u",name.c_str(),linearpatternParameter->getOccurrences());
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.recompute()");
-        if (!TransformedView->getObject()->isValid())
-            throw Base::Exception(TransformedView->getObject()->getStatusString());
-        Gui::Command::doCommand(Gui::Command::Gui,"Gui.activeDocument().resetEdit()");
-        Gui::Command::commitCommand();
+    TaskLinearPatternParameters* linearpatternParameter = static_cast<TaskLinearPatternParameters*>(parameter);
+    std::vector<std::string> directions;
+    App::DocumentObject* obj;
+    linearpatternParameter->getDirection(obj, directions);
+    std::string direction = getPythonStr(obj, directions);
+    if (!direction.empty() && obj) {
+        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Direction = %s", name.c_str(), direction.c_str());
+    } else {
+        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Direction = None", name.c_str());
     }
-    catch (const Base::Exception& e) {
-        QMessageBox::warning(parameter, tr("Input error"), QString::fromAscii(e.what()));
-        return false;
-    }
+    Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Reversed = %u",name.c_str(),linearpatternParameter->getReverse());
+    Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Length = %f",name.c_str(),linearpatternParameter->getLength());
+    Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Occurrences = %u",name.c_str(),linearpatternParameter->getOccurrences());
 
-    return true;
+    return TaskDlgTransformedParameters::accept();
 }
 
 #include "moc_TaskLinearPatternParameters.cpp"

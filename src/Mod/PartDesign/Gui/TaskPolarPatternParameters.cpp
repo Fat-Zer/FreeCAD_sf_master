@@ -392,38 +392,24 @@ TaskDlgPolarPatternParameters::TaskDlgPolarPatternParameters(ViewProviderPolarPa
 
 bool TaskDlgPolarPatternParameters::accept()
 {
-    std::string name = TransformedView->getObject()->getNameInDocument();
+    std::string name = vp->getObject()->getNameInDocument();
 
-    try {
-        // Handle Originals
-        if (!TaskDlgTransformedParameters::accept())
-            return false;
-
-        TaskPolarPatternParameters* polarpatternParameter = static_cast<TaskPolarPatternParameters*>(parameter);
-        std::vector<std::string> axes;
-        App::DocumentObject* obj;
-        polarpatternParameter->getAxis(obj, axes);
-        std::string axis = getPythonStr(obj, axes);
-        if (!axis.empty() && obj) {
-            Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Axis = %s", name.c_str(), axis.c_str());
-        } else {
-            Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Axis = None", name.c_str());
-        }
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Reversed = %u",name.c_str(),polarpatternParameter->getReverse());
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Angle = %f",name.c_str(),polarpatternParameter->getAngle());
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Occurrences = %u",name.c_str(),polarpatternParameter->getOccurrences());
-        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.recompute()");
-        if (!TransformedView->getObject()->isValid())
-            throw Base::Exception(TransformedView->getObject()->getStatusString());
-        Gui::Command::doCommand(Gui::Command::Gui,"Gui.activeDocument().resetEdit()");
-        Gui::Command::commitCommand();
+    TaskPolarPatternParameters* polarpatternParameter = static_cast<TaskPolarPatternParameters*>(parameter);
+    std::vector<std::string> axes;
+    App::DocumentObject* obj;
+    polarpatternParameter->getAxis(obj, axes);
+    std::string axis = getPythonStr(obj, axes);
+    if (!axis.empty() && obj) {
+        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Axis = %s", name.c_str(), axis.c_str());
+    } else {
+        Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Axis = None", name.c_str());
     }
-    catch (const Base::Exception& e) {
-        QMessageBox::warning(parameter, tr("Input error"), QString::fromAscii(e.what()));
-        return false;
-    }
+    Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Reversed = %u",name.c_str(),polarpatternParameter->getReverse());
+    Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Angle = %f",name.c_str(),polarpatternParameter->getAngle());
+    Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.Occurrences = %u",name.c_str(),polarpatternParameter->getOccurrences());
+    Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.recompute()");
 
-    return true;
+    return TaskDlgTransformedParameters::accept();
 }
 
 #include "moc_TaskPolarPatternParameters.cpp"
