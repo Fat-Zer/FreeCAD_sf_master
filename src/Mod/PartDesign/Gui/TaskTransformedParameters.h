@@ -30,12 +30,16 @@
 
 #include <Gui/TaskView/TaskView.h>
 #include <Gui/Selection.h>
-#include <Gui/TaskView/TaskDialog.h>
 
+#include "TaskFeatureParameters.h"
 #include "TaskTransformedMessages.h"
 #include "ViewProviderTransformed.h"
 
 class QListWidget;
+
+namespace Part {
+class Feature;
+}
 
 namespace PartDesign {
 class Transformed;
@@ -121,9 +125,13 @@ public:
     TaskTransformedParameters(TaskMultiTransformParameters *parentTask);
     virtual ~TaskTransformedParameters();
 
-    const std::vector<App::DocumentObject*> getOriginals(void) const;
-    /// Get the support object either of the object associated with this feature or with the parent feature (MultiTransform mode)
-    App::DocumentObject* getSupportObject() const;
+    /// Returns the originals property of associated top feeature object
+    const std::vector<App::DocumentObject*> & getOriginals(void) const;
+
+    /// Get the TransformedFeature object associated with this task
+    // Either through the ViewProvider or the currently active subFeature of the parentTask
+    Part::Feature *getBaseObject() const;
+
     /// Get the sketch object of the first original either of the object associated with this feature or with the parent feature (MultiTransform mode)
     App::DocumentObject* getSketchObject() const;   
 
@@ -132,6 +140,20 @@ public:
     virtual void apply() = 0;
 
 protected Q_SLOTS:
+    /**
+     * Returns the base transformation view provider
+     * For stand alone features it will be view provider associated with this object
+     * For features inside multitransform it will be the view provider of the multitransform object
+     */
+    PartDesignGui::ViewProviderTransformed *getTopTransformedView () const;
+
+    /**
+     * Returns the base transformated object
+     * For stand alone features it will be objects associated with this object
+     * For features inside multitransform it will be the base multitransform object
+     */
+    PartDesign::Transformed *getTopTransformedObject () const;
+
     /// Connect the subTask OK button to the MultiTransform task
     virtual void onSubTaskButtonOK() {}
     void onButtonAddFeature(const bool checked);
@@ -139,11 +161,15 @@ protected Q_SLOTS:
     virtual void onFeatureDeleted(void)=0;
 
 protected:
+    /**
+     * Returns the base transformation
+     * For stand alone features it will be objects associated with the view provider
+     * For features inside multitransform it will be the parent's multitransform object
+     */
+    PartDesign::Transformed *getObject () const;
+
     const bool originalSelected(const Gui::SelectionChanges& msg);
 
-    /// Get the TransformedFeature object associated with this task
-    // Either through the ViewProvider or the currently active subFeature of the parentTask
-    PartDesign::Transformed *getObject() const;
     /// Recompute either this feature or the parent feature (MultiTransform mode)
     void recomputeFeature();
 
@@ -185,7 +211,7 @@ protected:
 };
 
 /// simulation dialog for the TaskView
-class TaskDlgTransformedParameters : public Gui::TaskView::TaskDialog
+class TaskDlgTransformedParameters : public PartDesignGui::TaskDlgFeatureParameters
 {
     Q_OBJECT
 
@@ -194,30 +220,14 @@ public:
     virtual ~TaskDlgTransformedParameters() {}
 
     ViewProviderTransformed* getTransformedView() const
-    { return TransformedView; }
+    { return static_cast<ViewProviderTransformed*>(vp); }
 
 public:
-    /// is called the TaskView when the dialog is opened
-    virtual void open()
-        {}
-    /// is called by the framework if an button is clicked which has no accept or reject role
-    virtual void clicked(int)
-        {}
     /// is called by the framework if the dialog is accepted (Ok)
     virtual bool accept();
     /// is called by the framework if the dialog is rejected (Cancel)
     virtual bool reject();
-    /// is called by the framework if the user presses the help button
-    virtual bool isAllowedAlterDocument(void) const
-        { return false; }
-
-    /// returns for Close and Help button
-    virtual QDialogButtonBox::StandardButtons getStandardButtons(void) const
-        { return QDialogButtonBox::Ok|QDialogButtonBox::Cancel; }
-
 protected:
-    ViewProviderTransformed   *TransformedView;
-
     TaskTransformedParameters  *parameter;
     TaskTransformedMessages  *message;
 };
