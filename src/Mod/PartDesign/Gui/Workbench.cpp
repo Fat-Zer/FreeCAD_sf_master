@@ -43,6 +43,8 @@
 
 #include "Workbench.h"
 
+#include "WorkflowManager.h"
+
 using namespace PartDesignGui;
 
 #if 0 // needed for Qt's lupdate utility
@@ -55,12 +57,11 @@ using namespace PartDesignGui;
 /// @namespace PartDesignGui @class Workbench
 TYPESYSTEM_SOURCE(PartDesignGui::Workbench, Gui::StdWorkbench)
 
-Workbench::Workbench()
-{
+Workbench::Workbench() {
 }
 
-Workbench::~Workbench()
-{
+Workbench::~Workbench() {
+    WorkflowManager::destruct();
 }
 
 // Commented out due to later to be moves and/or generall rewrighted from scratch (Fat-Zer 2015-08-08)
@@ -369,6 +370,7 @@ void Workbench::activated()
 {
     Gui::Workbench::activated();
 
+    WorkflowManager::init();
 
     std::vector<Gui::TaskView::TaskWatcher*> Watcher;
 
@@ -628,7 +630,9 @@ Gui::MenuItem* Workbench::setupMenuBar() const
           << "PartDesign_Boolean"
           << "Separator"
           //<< "PartDesign_Hole"
-          << "PartDesign_InvoluteGear";
+          << "PartDesign_InvoluteGear"
+          << "Separator"
+          << "PartDesign_Migrate";
 
     // For 0.13 a couple of python packages like numpy, matplotlib and others
     // are not deployed with the installer on Windows. Thus, the WizardShaft is
