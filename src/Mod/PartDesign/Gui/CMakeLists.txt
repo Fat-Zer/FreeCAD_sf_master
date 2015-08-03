@@ -234,6 +234,8 @@ SET(PartDesignGuiModule_SRCS
     Utils.h
     Workbench.cpp
     Workbench.h
+    WorkflowManager.cpp
+    WorkflowManager.h
 )
 SOURCE_GROUP("Module" FILES ${PartDesignGuiModule_SRCS})
 
