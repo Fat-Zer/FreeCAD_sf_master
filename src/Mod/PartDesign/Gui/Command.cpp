@@ -76,6 +76,7 @@
 #include <Mod/PartDesign/App/DatumLine.h>
 #include <Mod/PartDesign/App/DatumPlane.h>
 #include "Workbench.h"
+#include "WorkflowManager.h"
 
 using namespace std;
 
@@ -102,6 +103,9 @@ CmdPartDesignPart::CmdPartDesignPart()
 
 void CmdPartDesignPart::activated(int iMsg)
 {
+    if ( PartDesignGui::determinWorkflow( getDocument() ) == PartDesignGui::Workflow::Legacy )
+        return;
+
     openCommand("Add a part");
     std::string FeatName = getUniqueObjectName("Part");
 
@@ -117,7 +121,8 @@ void CmdPartDesignPart::activated(int iMsg)
 
 bool CmdPartDesignPart::isActive(void)
 {
-    return hasActiveDocument();
+    return hasActiveDocument() &&
+        PartDesignGui::getWorkflowForDocument ( getDocument() ) != PartDesignGui::Workflow::Legacy;
 }
 
 //===========================================================================
@@ -139,6 +144,9 @@ CmdPartDesignBody::CmdPartDesignBody()
 
 void CmdPartDesignBody::activated(int iMsg)
 {
+    if ( PartDesignGui::determinWorkflow( getDocument() ) == PartDesignGui::Workflow::Legacy )
+        return;
+
     openCommand("Add a body");
     std::string FeatName = getUniqueObjectName("Body");
 
@@ -175,7 +183,42 @@ void CmdPartDesignBody::activated(int iMsg)
 
 bool CmdPartDesignBody::isActive(void)
 {
-    return hasActiveDocument();
+    return hasActiveDocument() &&
+        PartDesignGui::getWorkflowForDocument ( getDocument() ) != PartDesignGui::Workflow::Legacy;
+}
+
+//===========================================================================
+// PartDesign_Migrate
+//===========================================================================
+
+DEF_STD_CMD_A(CmdPartDesignMigrate);
+
+CmdPartDesignMigrate::CmdPartDesignMigrate()
+  : Command("PartDesign_Migrate")
+{
+    sAppModule    = "PartDesign";
+    sGroup        = QT_TR_NOOP("PartDesign");
+    sMenuText     = QT_TR_NOOP("Migrate");
+    sToolTipText  = QT_TR_NOOP("Migrate document to the new workflow");
+    sWhatsThis    = sToolTipText;
+    sStatusTip    = sToolTipText;
+}
+
+void CmdPartDesignMigrate::activated(int iMsg)
+{
+    App::Document *doc = getDocument();
+    // TODO make a proper implementation
+    QMessageBox::warning(Gui::getMainWindow(), QObject::tr("Not implemented yet"),
+            QObject::tr("The migration not implemented yet, just force-switching to the new workflow.\n"
+                "Previous workflow was: %1").arg(int(
+                    PartDesignGui::WorkflowManager::instance()->determinWorkflow( doc ) )));
+    PartDesignGui::WorkflowManager::instance()->forceWorkflow(doc, PartDesignGui::Workflow::Modern);
+}
+
+bool CmdPartDesignMigrate::isActive(void)
+{
+    return hasActiveDocument() &&
+        PartDesignGui::getWorkflowForDocument ( getDocument() ) != PartDesignGui::Workflow::Modern;
 }
 
 //===========================================================================
@@ -250,7 +293,8 @@ void CmdPartDesignMoveTip::activated(int iMsg)
 
 bool CmdPartDesignMoveTip::isActive(void)
 {
-    return hasActiveDocument();
+    return hasActiveDocument() &&
+        PartDesignGui::getWorkflowForDocument ( getDocument() ) != PartDesignGui::Workflow::Legacy;
 }
 
 //===========================================================================
@@ -321,10 +365,9 @@ void CmdPartDesignDuplicateSelection::activated(int iMsg)
 
 bool CmdPartDesignDuplicateSelection::isActive(void)
 {
-    if (getActiveGuiDocument())
-        return true;
-    else
-        return false;
+    // TODO Check if this is correct (2015-08-03, Fat-Zer)
+    return hasActiveDocument() &&
+        PartDesignGui::getWorkflowForDocument ( getDocument() ) != PartDesignGui::Workflow::Legacy;
 }
 
 //===========================================================================
@@ -421,10 +464,8 @@ void CmdPartDesignMoveFeature::activated(int iMsg)
 
 bool CmdPartDesignMoveFeature::isActive(void)
 {
-    if (getActiveGuiDocument())
-        return true;
-    else
-        return false;
+    return hasActiveDocument() &&
+        PartDesignGui::getWorkflowForDocument ( getDocument() ) != PartDesignGui::Workflow::Legacy;
 }
 
 DEF_STD_CMD_A(CmdPartDesignMoveFeatureInTree);
@@ -486,10 +527,8 @@ void CmdPartDesignMoveFeatureInTree::activated(int iMsg)
 
 bool CmdPartDesignMoveFeatureInTree::isActive(void)
 {
-    if (getActiveGuiDocument())
-        return true;
-    else
-        return false;
+    return hasActiveDocument() &&
+        PartDesignGui::getWorkflowForDocument ( getDocument() ) != PartDesignGui::Workflow::Legacy;
 }
 
 //===========================================================================
@@ -2170,6 +2209,8 @@ void CreatePartDesignCommands(void)
     rcCmdMgr.addCommand(new CmdPartDesignBody());
     rcCmdMgr.addCommand(new CmdPartDesignMoveTip());
 
+    rcCmdMgr.addCommand(new CmdPartDesignMigrate());
+
     rcCmdMgr.addCommand(new CmdPartDesignDuplicateSelection());
     rcCmdMgr.addCommand(new CmdPartDesignMoveFeature());
     rcCmdMgr.addCommand(new CmdPartDesignMoveFeatureInTree());
@@ -2201,4 +2242,4 @@ void CreatePartDesignCommands(void)
     rcCmdMgr.addCommand(new CmdPartDesignMultiTransform());
 
     rcCmdMgr.addCommand(new CmdPartDesignBoolean());
- }
+}

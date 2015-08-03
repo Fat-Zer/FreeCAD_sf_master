@@ -229,6 +229,8 @@ SET(PartDesignGuiModule_SRCS
     Resources/PartDesign.qrc
     PreCompiled.cpp
     PreCompiled.h
+    WorkflowManager.h
+    WorkflowManager.cpp
     Workbench.cpp
     Workbench.h
 )

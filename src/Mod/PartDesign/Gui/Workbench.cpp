@@ -58,6 +58,8 @@
 #include <Mod/Part/App/DatumFeature.h>
 #include <Mod/Sketcher/App/SketchObject.h>
 
+#include "WorkflowManager.h"
+
 using namespace PartDesignGui;
 
 #if 0 // needed for Qt's lupdate utility
@@ -78,7 +80,8 @@ PartDesign::Body *getBody(bool messageIfNot)
     Gui::MDIView *activeView = Gui::Application::Instance->activeView();
 
     if (activeView) {
-        activeBody = activeView->getActiveObject<PartDesign::Body*>(PDBODYKEY);
+        if ( determinWorkflow( activeView->getAppDocument() ) != PartDesignGui::Workflow::Legacy )
+            activeBody = activeView->getActiveObject<PartDesign::Body*>(PDBODYKEY);
     }
 
     if (!activeBody && messageIfNot) {
@@ -146,12 +149,12 @@ App::Part* getPartFor(const App::DocumentObject* obj, bool messageIfNot) {
 /// @namespace PartDesignGui @class Workbench
 TYPESYSTEM_SOURCE(PartDesignGui::Workbench, Gui::StdWorkbench)
 
-Workbench::Workbench()
-{
+Workbench::Workbench() {
+    WorkflowManager::init();
 }
 
-Workbench::~Workbench()
-{
+Workbench::~Workbench() {
+    WorkflowManager::destruct();
 }
 
 static void buildDefaultPartAndBody(const App::Document* doc)
@@ -785,7 +788,9 @@ Gui::MenuItem* Workbench::setupMenuBar() const
           << "PartDesign_Boolean"
           << "Separator"
           //<< "PartDesign_Hole"
-          << "PartDesign_InvoluteGear";
+          << "PartDesign_InvoluteGear"
+          << "Separator"
+          << "PartDesign_Migrate";
 
     // For 0.13 a couple of python packages like numpy, matplotlib and others
     // are not deployed with the installer on Windows. Thus, the WizardShaft is
