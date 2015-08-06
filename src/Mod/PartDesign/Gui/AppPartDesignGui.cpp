@@ -62,6 +62,7 @@
 
 // use a different name to CreateCommand()
 void CreatePartDesignCommands(void);
+void CreatePartDesignBodyCommands(void);
 void CreatePartDesignPrimitiveCommands(void);
 
 void loadPartDesignResource()
@@ -98,6 +99,7 @@ void PartDesignGuiExport initPartDesignGui()
 
     // instantiating the commands
     CreatePartDesignCommands();
+    CreatePartDesignBodyCommands();
     CreatePartDesignPrimitiveCommands();
 
     PartDesignGui::Workbench                 ::init();
