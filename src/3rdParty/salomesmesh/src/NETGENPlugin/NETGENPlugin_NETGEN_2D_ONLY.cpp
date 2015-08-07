@@ -53,7 +53,9 @@
 namespace nglib {
 #include <nglib.h>
 }
+#ifndef OCCGEOMETRY
 #define OCCGEOMETRY
+#endif
 #include <occgeom.hpp>
 #include <meshing.hpp>
 //#include <meshtype.hpp>
