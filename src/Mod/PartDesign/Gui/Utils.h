@@ -31,7 +31,7 @@ namespace PartDesign {
 }
 
 namespace App {
-	class DocumentObject;
+    class DocumentObject;
     class Part;
 }
 
@@ -40,7 +40,7 @@ namespace Sketcher {
 }
 
 namespace PartDesignGui {
-	
+
 /// Return active body or show a warning message
 PartDesign::Body *getBody(bool messageIfNot);
 /**

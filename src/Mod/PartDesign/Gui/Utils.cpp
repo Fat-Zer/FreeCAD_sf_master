@@ -47,7 +47,7 @@
 //===========================================================================
 
 namespace PartDesignGui {
-	
+
 PartDesign::Body *getBody(bool messageIfNot)
 {
     PartDesign::Body * activeBody = nullptr;

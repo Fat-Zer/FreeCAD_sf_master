@@ -144,12 +144,12 @@ const QByteArray TaskSketchBasedParameters::onFaceName(const QString& text)
     if (obj == NULL)
         return QByteArray();
 
-	PartDesign::Body* activeBody = Gui::Application::Instance->activeView()->getActiveObject<PartDesign::Body*>(PDBODYKEY);
+    PartDesign::Body* activeBody = Gui::Application::Instance->activeView()->getActiveObject<PartDesign::Body*>(PDBODYKEY);
     if (obj->getTypeId().isDerivedFrom(App::Plane::getClassTypeId())) {
         // everything is OK (we assume a Part can only have exactly 3 App::Plane objects located at the base of the feature tree)
         return QByteArray();
     } else if (obj->getTypeId().isDerivedFrom(Part::Datum::getClassTypeId())) {
-		if (!activeBody->hasFeature(obj))
+        if (!activeBody->hasFeature(obj))
             return QByteArray();
         return QByteArray();
     } else {

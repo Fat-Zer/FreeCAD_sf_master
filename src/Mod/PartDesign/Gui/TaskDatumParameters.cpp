@@ -601,7 +601,7 @@ void TaskDatumParameters::onRefName(const QString& text, const int idx)
     if (obj == NULL) return;
 
     std::string subElement;
-	PartDesign::Body* activeBody = Gui::Application::Instance->activeView()->getActiveObject<PartDesign::Body*>(PDBODYKEY);
+    PartDesign::Body* activeBody = Gui::Application::Instance->activeView()->getActiveObject<PartDesign::Body*>(PDBODYKEY);
 
     if (obj->getTypeId().isDerivedFrom(App::Plane::getClassTypeId())) {
         // everything is OK (we assume a Part can only have exactly 3 App::Plane objects located at the base of the feature tree)
@@ -918,7 +918,7 @@ bool TaskDlgDatumParameters::reject()
     Gui::Command::doCommand(Gui::Command::Gui,"Gui.activeDocument().resetEdit()");
     Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.recompute()");
 
-	PartDesign::Body* activeBody = Gui::Application::Instance->activeView()->getActiveObject<PartDesign::Body*>(PDBODYKEY);
+    PartDesign::Body* activeBody = Gui::Application::Instance->activeView()->getActiveObject<PartDesign::Body*>(PDBODYKEY);
 
     return true;
 }
