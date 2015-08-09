@@ -51,19 +51,22 @@
 # include <GeomAPI_IntCS.hxx>
 #endif
 
-#include "ViewProviderDatum.h"
-#include "TaskDatumParameters.h"
-#include "Workbench.h"
 #include <App/Part.h>
-#include <Mod/PartDesign/App/DatumPoint.h>
-#include <Mod/PartDesign/App/DatumLine.h>
-#include <Mod/PartDesign/App/DatumPlane.h>
 #include <Gui/Control.h>
 #include <Gui/Command.h>
 #include <Gui/Application.h>
 #include <Gui/MDIView.h>
+
+#include <Mod/PartDesign/App/DatumPoint.h>
+#include <Mod/PartDesign/App/DatumLine.h>
+#include <Mod/PartDesign/App/DatumPlane.h>
 #include <Mod/PartDesign/App/Body.h>
 #include <Mod/PartDesign/App/DatumCS.h>
+
+#include "TaskDatumParameters.h"
+#include "Utils.h"
+
+#include "ViewProviderDatum.h"
 
 using namespace PartDesignGui;
 

@@ -43,7 +43,6 @@
 #include <Mod/PartDesign/App/DatumLine.h>
 #include <Mod/PartDesign/App/DatumPlane.h>
 #include "ReferenceSelection.h"
-#include "Workbench.h"
 
 using namespace PartDesignGui;
 using namespace Gui;

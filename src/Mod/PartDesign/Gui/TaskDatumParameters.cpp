@@ -31,8 +31,7 @@
 # include <Precision.hxx>
 #endif
 
-#include "ui_TaskDatumParameters.h"
-#include "TaskDatumParameters.h"
+#include <Base/Console.h>
 #include <App/Application.h>
 #include <App/Document.h>
 #include <App/Plane.h>
@@ -43,15 +42,18 @@
 #include <Gui/BitmapFactory.h>
 #include <Gui/ViewProvider.h>
 #include <Gui/WaitCursor.h>
-#include <Base/Console.h>
 #include <Gui/Selection.h>
 #include <Gui/Command.h>
 #include <Gui/ViewProviderOrigin.h>
 #include <Mod/Part/App/PrimitiveFeature.h>
 #include <Mod/Part/App/DatumFeature.h>
 #include <Mod/PartDesign/App/Body.h>
+
 #include "ReferenceSelection.h"
-#include "Workbench.h"
+#include "Utils.h"
+
+#include "ui_TaskDatumParameters.h"
+#include "TaskDatumParameters.h"
 
 using namespace PartDesignGui;
 using namespace Gui;
