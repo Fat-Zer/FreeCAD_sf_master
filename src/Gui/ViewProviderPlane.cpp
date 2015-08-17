@@ -157,6 +157,7 @@ void ViewProviderPlane::attach(App::DocumentObject* pcObject)
 
     SoSeparator  *sep = new SoSeparator();
     SoAnnotation *lineSep = new SoAnnotation();
+    SoFCSelection *highlight = new SoFCSelection();
 
     SoDrawStyle* style = new SoDrawStyle();
     style->lineWidth = 2.0f;
@@ -166,10 +167,10 @@ void ViewProviderPlane::attach(App::DocumentObject* pcObject)
 
     sep->addChild(matBinding);
     sep->addChild(pMat);
-//    sep->addChild(getHighlightNode());
-//    pcHighlight->addChild(style);
-//    pcHighlight->addChild(pCoords);
-//    pcHighlight->addChild(pLines);
+    sep->addChild(highlight);
+    highlight->addChild(style);
+    highlight->addChild(pCoords);
+    highlight->addChild(pLines);
 
     style = new SoDrawStyle();
     style->lineWidth = 2.0f;
@@ -180,9 +181,9 @@ void ViewProviderPlane::attach(App::DocumentObject* pcObject)
     pText->string.setValue(SbString(pcObject->Label.getValue()));
     lineSep->addChild(pTranslation);
     lineSep->addChild(pText);
-//    pcHighlight->addChild(lineSep);
-//
-//    pcHighlight->style = SoFCSelection::EMISSIVE_DIFFUSE;
+    highlight->addChild(lineSep);
+
+    highlight->style = SoFCSelection::EMISSIVE_DIFFUSE;
     addDisplayMaskMode(sep, "Base");
 }
 
