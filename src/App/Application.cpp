@@ -94,8 +94,7 @@
 #include "Annotation.h"
 #include "MeasureDistance.h"
 #include "Placement.h"
-#include "Plane.h"
-#include "Line.h"
+#include "OriginFeature.h"
 #include "Part.h"
 #include "Origin.h"
 #include "MaterialObject.h"
@@ -1110,6 +1109,7 @@ void Application::initTypes(void)
     App ::MaterialObject            ::init();
     App ::MaterialObjectPython      ::init();
     App ::Placement                 ::init();
+    App ::OriginFeature             ::init();
     App ::Plane                     ::init();
     App ::Line                      ::init();
     App ::Part                      ::init();

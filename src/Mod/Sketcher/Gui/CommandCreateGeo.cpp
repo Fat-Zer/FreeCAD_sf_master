@@ -35,7 +35,7 @@
 #include <Base/Console.h>
 #include <Base/Exception.h>
 
-#include <App/Plane.h>
+#include <App/OriginFeature.h>
 #include <Gui/Action.h>
 #include <Gui/Application.h>
 #include <Gui/BitmapFactory.h>

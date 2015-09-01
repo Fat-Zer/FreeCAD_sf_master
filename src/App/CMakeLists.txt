@@ -91,8 +91,7 @@ SET(Document_CPP_SRCS
     InventorObject.cpp
     MeasureDistance.cpp
     Placement.cpp
-    Plane.cpp
-    Line.cpp
+    OriginFeature.cpp
     Transactions.cpp
     VRMLObject.cpp
     MaterialObject.cpp
@@ -119,8 +118,7 @@ SET(Document_HPP_SRCS
     InventorObject.h
     MeasureDistance.h
     Placement.h
-    Plane.h
-    Line.h
+    OriginFeature.h
     Transactions.h
     VRMLObject.h
     MaterialObject.h

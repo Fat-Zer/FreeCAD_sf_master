@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (c) Stefan Tröger          (stefantroeger@gmx.net) 2015     *
+ *   Copyright (c) 2015 Alexander Golubev (Fat-Zer) <fatzer2@gmail.com>    *
  *                                                                         *
  *   This file is part of the FreeCAD CAx development system.              *
  *                                                                         *
@@ -20,50 +20,50 @@
  *                                                                         *
  ***************************************************************************/
 
+#include "PreCompiled.h"
 
-
-
-#ifndef _AppLine_h_
-#define _AppLine_h_
-
-
-#include "GeoFeature.h"
-#include "PropertyGeo.h"
-
-
-
-namespace App
-{
-
-
-/** Line Object
- *  Used to define planar support for all kind of operations in the document space
- */
-class AppExport Line: public App::GeoFeature
-{
-    PROPERTY_HEADER(App::Line);
-
-public:
-
-  /// Constructor
-  Line(void);
-  virtual ~Line();
-  /// additional information about the plane usage (e.g. "BaseLine-xy" in a Part)
-  PropertyString LineType;
-
-
-  /// returns the type name of the ViewProvider
-  virtual const char* getViewProviderName(void) const {
-      return "Gui::ViewProviderLine";
-  }
-
-  /// Return the bounding box of the plane (this is always a fixed size)
-  static Base::BoundBox3d getBoundBox();
-};
-
-
-} //namespace App
-
-
-
+#ifndef _PreComp_
 #endif
+
+#include "Document.h"
+#include "Origin.h"
+
+#include "OriginFeature.h"
+
+using namespace App;
+
+PROPERTY_SOURCE(App::OriginFeature, App::GeoFeature)
+PROPERTY_SOURCE(App::Plane, App::OriginFeature)
+PROPERTY_SOURCE(App::Line, App::OriginFeature)
+
+OriginFeature::OriginFeature()
+{
+    ADD_PROPERTY_TYPE ( Role, (""), 0, App::Prop_ReadOnly, "Role of the feature in the Origin" ) ;
+
+    // Set placement to read-only
+    Placement.StatusBits.set(3, true);
+}
+
+OriginFeature::~OriginFeature()
+{ }
+
+// Base::BoundBox3d OriginFeature::getBoundBox()
+// {
+//     return Base::BoundBox3d(-10, -10, -10, 10, 10, 10);
+// }
+
+Origin * OriginFeature::getOrigin () {
+    App::Document *doc = getDocument();
+    auto origins = doc->getObjectsOfType ( App::Origin::getClassTypeId() );
+
+    auto originIt= std::find_if (origins.begin(), origins.end(), [this] (DocumentObject *origin) {
+            assert ( origin->isDerivedFrom ( App::Origin::getClassTypeId() ) );
+            return static_cast<App::Origin *> (origin)->hasObject (this);
+        } );
+    if (originIt == origins.end()) {
+        return 0;
+    } else {
+        assert ( (*originIt)->isDerivedFrom ( App::Origin::getClassTypeId() ) );
+        return static_cast<App::Origin *> (*originIt);
+    }
+}
