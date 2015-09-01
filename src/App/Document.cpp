@@ -2038,7 +2038,6 @@ void Document::remObject(const char* sName)
         pos->second->unsetupObject();
     }
     signalDeletedObject(*(pos->second));
-    // TODO Check me if it's needed (2015-09-01, Fat-Zer)
     pos->second->StatusBits.reset (ObjectStatus::Delete); // Unset the bit to be on the safe side
 
     if (!d->vertexMap.empty()) {
@@ -2094,6 +2093,7 @@ void Document::remObject(const char* sName)
 /// Remove an object out of the document (internal)
 void Document::_remObject(DocumentObject* pcObject)
 {
+    // TODO Refactoring: share code with Document::remObject() (2015-09-01, Fat-Zer)
     _checkTransaction(pcObject);
 
     std::map<std::string,DocumentObject*>::iterator pos = d->objectMap.find(pcObject->getNameInDocument());
