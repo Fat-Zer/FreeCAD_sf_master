@@ -76,7 +76,6 @@
 #include <Base/UnitPy.h>
 
 #include "GeoFeature.h"
-#include "GeoFeatureGroup.h"
 #include "FeatureTest.h"
 #include "FeaturePython.h"
 #include "ComplexGeoData.h"
@@ -94,8 +93,10 @@
 #include "Annotation.h"
 #include "MeasureDistance.h"
 #include "Placement.h"
-#include "OriginFeature.h"
+#include "GeoFeatureGroup.h"
+#include "OriginGroup.h"
 #include "Part.h"
+#include "OriginFeature.h"
 #include "Origin.h"
 #include "MaterialObject.h"
 
@@ -1098,8 +1099,6 @@ void Application::initTypes(void)
     App ::Document                  ::init();
     App ::DocumentObjectGroup       ::init();
     App ::DocumentObjectGroupPython ::init();
-    App ::GeoFeatureGroup           ::init();
-    App ::GeoFeatureGroupPython     ::init();
     App ::DocumentObjectFileIncluded::init();
     App ::InventorObject            ::init();
     App ::VRMLObject                ::init();
@@ -1112,6 +1111,9 @@ void Application::initTypes(void)
     App ::OriginFeature             ::init();
     App ::Plane                     ::init();
     App ::Line                      ::init();
+    App ::GeoFeatureGroup           ::init();
+    App ::GeoFeatureGroupPython     ::init();
+    App ::OriginGroup               ::init();
     App ::Part                      ::init();
     App ::Origin                    ::init();
 }

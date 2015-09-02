@@ -96,7 +96,6 @@
 #include "ViewProviderPythonFeature.h"
 #include "ViewProviderDocumentObjectGroup.h"
 #include "ViewProviderGeometryObject.h"
-#include "ViewProviderGeoFeatureGroup.h"
 #include "ViewProviderInventorObject.h"
 #include "ViewProviderVRMLObject.h"
 #include "ViewProviderAnnotation.h"
@@ -104,6 +103,8 @@
 #include "ViewProviderPlacement.h"
 #include "ViewProviderPlane.h"
 #include "ViewProviderLine.h"
+#include "ViewProviderGeoFeatureGroup.h"
+#include "ViewProviderOriginGroup.h"
 #include "ViewProviderPart.h"
 #include "ViewProviderOrigin.h"
 #include "ViewProviderMaterialObject.h"
@@ -1508,8 +1509,6 @@ void Application::initTypes(void)
     Gui::ViewProviderDocumentObjectGroup        ::init();
     Gui::ViewProviderDocumentObjectGroupPython  ::init();
     Gui::ViewProviderGeometryObject             ::init();
-    Gui::ViewProviderGeoFeatureGroup            ::init();
-    Gui::ViewProviderGeoFeatureGroupPython      ::init();
     Gui::ViewProviderInventorObject             ::init();
     Gui::ViewProviderVRMLObject                 ::init();
     Gui::ViewProviderAnnotation                 ::init();
@@ -1521,6 +1520,9 @@ void Application::initTypes(void)
     Gui::ViewProviderPlacement                  ::init();
     Gui::ViewProviderPlane                      ::init();
     Gui::ViewProviderLine                       ::init();
+    Gui::ViewProviderGeoFeatureGroup            ::init();
+    Gui::ViewProviderGeoFeatureGroupPython      ::init();
+    Gui::ViewProviderOriginGroup                ::init();
     Gui::ViewProviderPart                       ::init();
     Gui::ViewProviderOrigin                     ::init();
     Gui::ViewProviderMaterialObject             ::init();
