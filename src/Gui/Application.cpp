@@ -101,6 +101,7 @@
 #include "ViewProviderAnnotation.h"
 #include "ViewProviderMeasureDistance.h"
 #include "ViewProviderPlacement.h"
+#include "ViewProviderOriginFeature.h"
 #include "ViewProviderPlane.h"
 #include "ViewProviderLine.h"
 #include "ViewProviderGeoFeatureGroup.h"
@@ -1518,6 +1519,7 @@ void Application::initTypes(void)
     Gui::ViewProviderPythonFeature              ::init();
     Gui::ViewProviderPythonGeometry             ::init();
     Gui::ViewProviderPlacement                  ::init();
+    Gui::ViewProviderOriginFeature              ::init();
     Gui::ViewProviderPlane                      ::init();
     Gui::ViewProviderLine                       ::init();
     Gui::ViewProviderGeoFeatureGroup            ::init();
