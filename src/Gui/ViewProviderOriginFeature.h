@@ -55,7 +55,6 @@ public:
     virtual std::vector<std::string> getDisplayModes () const;
     virtual void setDisplayMode (const char* ModeName);
 
-
     /// @name Suppress ViewProviderGeometryObject's behaviour
     ///@{
     virtual bool setEdit ( int )
