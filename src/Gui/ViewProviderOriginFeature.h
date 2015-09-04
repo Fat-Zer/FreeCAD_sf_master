@@ -33,9 +33,6 @@ namespace Gui
 
 /**
  * View provider associated with an App::OriginFeature.
- * NOTE: Due to we Had derive App::OriginFeature from the App::GeoFeature, we have to derive
- *       the ViewProvider from associated view provider to keep class hierarchy consistent.
- *       Despite this fact we suppress mostly all behaviour of the base view provider here.
  */
 class ViewProviderOriginFeature: public ViewProviderGeometryObject {
     PROPERTY_HEADER(Gui::ViewProviderOriginFeature);
