@@ -51,16 +51,12 @@ public:
     App::PropertyBool    Reversed;
     /// Make extrusion symmetric to sketch plane
     App::PropertyBool    Midplane;
+    // TODO This proprty doesn't look well for a general sketchbased object:
+    //      at least they inappropriate for revolution/groove (2015-12-06, Fat-Zer)
     /// Face to extrude up to
     App::PropertyLinkSub UpToFace;
 
     short mustExecute() const;
-
-    /** calculates and updates the Placement property based on the features
-     * this one is made from: either from Base, if there is one, or from sketch,
-     * if there is no base.
-     */
-    void positionByPrevious(void);
 
     /** applies a transform on the Placement of the Sketch or its
      *  support if it has one
@@ -73,28 +69,49 @@ public:
      *               silently returns nullptr, otherwice throw a Base::Exception.
      *               Default is false.
      */
-    Part::Part2DObject* getVerifiedSketch(bool silent=false) const;
+    Part::Part2DObject* getVerifiedSketch(bool silent=false) const {
+        return getVerifiedSketch ( Sketch.getValue() );
+    }
+
+
+    /// Verify that the given sketch is valid. A static version of the previous methode.
+    static Part::Part2DObject* getVerifiedSketch(App::DocumentObject *sketch, bool silent=false);
+
     /// Returns the wires the sketch is composed of
-    std::vector<TopoDS_Wire> getSketchWires() const;
+    std::vector<TopoDS_Wire> getSketchWires() const {
+        return getSketchWires ( getVerifiedSketch () );
+    }
+    /// Returns the wires the sketch is composed of. A static version of the previous methode.
+    static std::vector<TopoDS_Wire> getSketchWires(Part::Part2DObject* sketch);
+
     /// Returns the face of the sketch support (if any)
     const TopoDS_Face getSupportFace() const;
 
     /// retrieves the number of axes in the linked sketch (defined as construction lines)
-    int getSketchAxisCount(void) const;    
+    int getSketchAxisCount(void) const;
 
     virtual Part::Feature* getBaseObject(bool silent=false) const;
 
+    /// @name Utility functions
+    ///@{
+    static TopoDS_Face validateFace(const TopoDS_Face&);
+    static TopoDS_Shape makeFace(const std::vector<TopoDS_Wire>& w);
+    static bool isInside(const TopoDS_Wire&, const TopoDS_Wire&);
+    static bool isParallelPlane(const TopoDS_Shape&, const TopoDS_Shape&);
+    static bool isEqualGeometry(const TopoDS_Shape&, const TopoDS_Shape&);
+    static bool isQuasiEqual(const TopoDS_Shape&, const TopoDS_Shape&);
+    ///@}
+
 protected:
     void onChanged(const App::Property* prop);
-    TopoDS_Face validateFace(const TopoDS_Face&) const;
-    TopoDS_Shape makeFace(const std::vector<TopoDS_Wire>&) const;
-    TopoDS_Shape makeFace(std::list<TopoDS_Wire>&) const; // for internal use only    
-    bool isInside(const TopoDS_Wire&, const TopoDS_Wire&) const;
-    bool isParallelPlane(const TopoDS_Shape&, const TopoDS_Shape&) const;
-    bool isEqualGeometry(const TopoDS_Shape&, const TopoDS_Shape&) const;
-    bool isQuasiEqual(const TopoDS_Shape&, const TopoDS_Shape&) const;
     void remapSupportShape(const TopoDS_Shape&);
-    TopoDS_Shape refineShapeIfActive(const TopoDS_Shape&) const;
+
+
+    /** calculates and updates the Placement property based on the features
+     * this one is made from: either from Base, if there is one, or from sketch,
+     * if there is no base.
+     */
+    virtual void positionByBase(void);
 
     /// Extract a face from a given LinkSub
     static void getUpToFaceFromLinkSub(TopoDS_Face& upToFace,
@@ -136,6 +153,8 @@ protected:
     /// get Axis from ReferenceAxis
     void getAxis(const App::DocumentObject* pcReferenceAxis, const std::vector<std::string>& subReferenceAxis,
                  Base::Vector3d& base, Base::Vector3d& dir);
+private:
+    static TopoDS_Shape makeFace(std::list<TopoDS_Wire>&); // for internal use only
 };
 
 } //namespace PartDesign

@@ -121,7 +121,7 @@ App::DocumentObjectExecReturn *Pad::execute(void)
     SketchOrientation.multVec(SketchVector,SketchVector);
 
     try {
-        this->positionByPrevious();
+        this->positionByBase();
         TopLoc_Location invObjLoc = this->getLocation().Inverted();
 
         base.Move(invObjLoc);

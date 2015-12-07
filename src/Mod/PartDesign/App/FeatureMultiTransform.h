@@ -60,7 +60,7 @@ public:
     const std::list<gp_Trsf> getTransformations(const std::vector<App::DocumentObject*> originals);
 
 protected:
-    virtual void positionBySupport(void);
+    virtual void positionByBase(void);
 };
 
 } //namespace PartDesign

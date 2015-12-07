@@ -1092,7 +1092,7 @@ CmdPartDesignAdditiveLoft::CmdPartDesignAdditiveLoft()
     sAppModule    = "PartDesign";
     sGroup        = QT_TR_NOOP("PartDesign");
     sMenuText     = QT_TR_NOOP("Additive loft");
-    sToolTipText  = QT_TR_NOOP("Sweep a selected sketch along a path or to other profiles");
+    sToolTipText  = QT_TR_NOOP("Create a loft of selected sketches And add it to the current Tip");
     sWhatsThis    = "PartDesign_Additive_Loft";
     sStatusTip    = sToolTipText;
     sPixmap       = "PartDesign_Additive_Loft";
@@ -1100,19 +1100,22 @@ CmdPartDesignAdditiveLoft::CmdPartDesignAdditiveLoft()
 
 void CmdPartDesignAdditiveLoft::activated(int iMsg)
 {
+    // TODO finish it (Now it's just a working stub) (2015-12-07, Fat-Zer)
     Gui::Command* cmd = this;
-    auto worker = [cmd](Part::Part2DObject* sketch, std::string FeatName) {
 
-        if (FeatName.empty()) return;
+    std::string FeatName = getUniqueObjectName("Loft");
+    openCommand ( QObject::tr ( "Loft" ).toUtf8() );
 
-        // specific parameters for pipe
-        Gui::Command::updateActive();
+    Gui::Command::doCommand ( Gui::Command::Doc,
+            "App.activeDocument().addObject(\"PartDesign::AdditiveLoft\",\"%s\")",
+            FeatName.c_str () );
 
-        finishSketchBased(cmd, sketch, FeatName);
-        cmd->adjustCameraPosition();
-    };
+    Gui::Command::doCommand(Gui,"Gui.activeDocument().setEdit('%s')",FeatName.c_str());
 
-    prepareSketchBased(this, "AdditiveLoft", worker);
+    // specific parameters for pipe
+    Gui::Command::updateActive();
+
+    finishFeature(cmd, FeatName);
 }
 
 bool CmdPartDesignAdditiveLoft::isActive(void)
@@ -1132,7 +1135,7 @@ CmdPartDesignSubtractiveLoft::CmdPartDesignSubtractiveLoft()
     sAppModule    = "PartDesign";
     sGroup        = QT_TR_NOOP("PartDesign");
     sMenuText     = QT_TR_NOOP("Subtractive loft");
-    sToolTipText  = QT_TR_NOOP("Sweep a selected sketch along a path or to other profiles and remove it from the body");
+    sToolTipText  = QT_TR_NOOP("Create a loft of selected sketches and substract it from the current Tip");
     sWhatsThis    = "PartDesign_Subtractive_Loft";
     sStatusTip    = sToolTipText;
     sPixmap       = "PartDesign_Subtractive_Loft";
@@ -1140,6 +1143,7 @@ CmdPartDesignSubtractiveLoft::CmdPartDesignSubtractiveLoft()
 
 void CmdPartDesignSubtractiveLoft::activated(int iMsg)
 {
+    // TODO Rewright the substractive Loft (2015-12-07, Fat-Zer)
     Gui::Command* cmd = this;
     auto worker = [cmd](Part::Part2DObject* sketch, std::string FeatName) {
 

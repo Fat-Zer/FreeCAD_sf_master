@@ -28,12 +28,12 @@
 #include <App/PropertyStandard.h>
 #include <App/PropertyUnits.h>
 
-#include "FeatureSketchBased.h"
+#include "FeatureAddSub.h"
 
 namespace PartDesign
 {
 
-class PartDesignExport Loft : public SketchBased
+class PartDesignExport Loft : public FeatureAddSub
 {
     PROPERTY_HEADER(PartDesign::Loft);
 
@@ -46,15 +46,16 @@ public:
 
     /** @name methods override feature */
     //@{
-    App::DocumentObjectExecReturn *execute(void);
+    virtual App::DocumentObjectExecReturn *execute(void);
+
     short mustExecute() const;
     /// returns the type name of the view provider
     const char* getViewProviderName(void) const {
         return "PartDesignGui::ViewProviderLoft";
     }
     //@}
-
-private:
+protected:
+    static inline TopoDS_Shape makeFace(const std::vector<TopoDS_Wire>& w);
     //static const char* TypeEnums[];
     //static const char* SideEnums[];
 };

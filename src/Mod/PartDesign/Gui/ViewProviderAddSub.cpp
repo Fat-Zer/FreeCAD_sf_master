@@ -75,6 +75,19 @@ ViewProviderAddSub::~ViewProviderAddSub()
     previewShape->unref();
 }
 
+bool ViewProviderAddSub::setEdit(int ModNum)
+{
+    if (ModNum == ViewProvider::Default ) {
+        setPreviewDisplayMode(true);
+    }
+    return ViewProvider::setEdit(ModNum);
+}
+
+void ViewProviderAddSub::unsetEdit(int ModNum) {
+    setPreviewDisplayMode(false);
+    PartDesignGui::ViewProvider::unsetEdit(ModNum);
+}
+
 void ViewProviderAddSub::attach(App::DocumentObject* obj) {
      
     ViewProvider::attach(obj);
@@ -82,6 +95,7 @@ void ViewProviderAddSub::attach(App::DocumentObject* obj) {
     auto* bind = new SoMaterialBinding();
     bind->value = SoMaterialBinding::OVERALL;
     auto* material = new SoMaterial();
+    // TODO Make colors changable at lest through the parameter editor (2015-12-07, Fat-Zer)
     if(static_cast<PartDesign::FeatureAddSub*>(obj)->getAddSubType() == PartDesign::FeatureAddSub::Additive)
         material->diffuseColor = SbColor(1,1,0);
     else
@@ -100,6 +114,22 @@ void ViewProviderAddSub::attach(App::DocumentObject* obj) {
     
     addDisplayMaskMode(previewShape, "Shape preview");
     updateAddSubShapeIndicator();
+}
+
+std::vector<std::string> ViewProviderAddSub::getDisplayModes () const
+{
+    // add our own display mode
+    std::vector<std::string> modes = ViewProvider::getDisplayModes ();
+    modes.push_back("Shape preview");
+    return modes;
+}
+
+void ViewProviderAddSub::setDisplayMode (const char* ModeName)
+{
+    if (strcmp(ModeName, "Shape preview") == 0) {
+        setDisplayMaskMode("Shape preview");
+    }
+    ViewProvider::setDisplayMode(ModeName);
 }
 
 void ViewProviderAddSub::updateAddSubShapeIndicator() {
@@ -279,7 +309,8 @@ void ViewProviderAddSub::setPreviewDisplayMode(bool onoff) {
         setDisplayMaskMode("Shape preview");
     }
     
-    if(!onoff) {
-        setDisplayMaskMode(displayMode.c_str());
+    if(!onoff && !displayMode.empty () ) {
+        setDisplayMaskMode ( displayMode.c_str() );
+        displayMode.clear ();
     }
 }

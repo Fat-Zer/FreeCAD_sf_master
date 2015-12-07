@@ -23,33 +23,22 @@
 
 #include "PreCompiled.h"
 #ifndef _PreComp_
-# include <TopoDS_Solid.hxx>
-# include <TopoDS_Wire.hxx>
-# include <TopExp_Explorer.hxx>
-# include <BRepAlgoAPI_Fuse.hxx>
-# include <BRepAlgoAPI_Common.hxx>
-#include <BRepOffsetAPI_ThruSections.hxx>
-#include <BRepBuilderAPI_Sewing.hxx>
-#include <BRepBuilderAPI_MakeSolid.hxx>
-#include <BRepClass3d_SolidClassifier.hxx>
-#include <BRepAlgoAPI_Cut.hxx>
-#include <TopoDS.hxx>
-#include <Precision.hxx>
+# include <BRepOffsetAPI_ThruSections.hxx>
+# include <BRepBuilderAPI_Sewing.hxx>
+# include <BRepBuilderAPI_MakeSolid.hxx>
+# include <BRepClass3d_SolidClassifier.hxx>
+# include <TopoDS.hxx>
+# include <Precision.hxx>
 #endif
 
-#include <Base/Exception.h>
-#include <Base/Placement.h>
-#include <Base/Console.h>
-#include <Base/Reader.h>
-#include <App/Document.h>
+#include "FeatureSketchBased.h"
 
-//#include "Body.h"
 #include "FeatureLoft.h"
 
 
 using namespace PartDesign;
 
-PROPERTY_SOURCE(PartDesign::Loft, PartDesign::SketchBased)
+PROPERTY_SOURCE(PartDesign::Loft, PartDesign::FeatureAddSub)
 
 Loft::Loft()
 {
@@ -67,68 +56,57 @@ short Loft::mustExecute() const
         return 1;
     if (Closed.isTouched())
         return 1;
- 
-    return SketchBased::mustExecute();
+
+    return FeatureAddSub::mustExecute();
+}
+
+inline TopoDS_Shape Loft::makeFace(const std::vector<TopoDS_Wire>& w) {
+    return SketchBased::makeFace ( w );
 }
 
 App::DocumentObjectExecReturn *Loft::execute(void)
 {
-   
-    std::vector<TopoDS_Wire> wires;
-    try {
-        wires = getSketchWires();
-    } catch (const Base::Exception& e) {
-        return new App::DocumentObjectExecReturn(e.what());
-    }
-    
-    TopoDS_Shape sketchshape = makeFace(wires);
-    if (sketchshape.IsNull())
-        return new App::DocumentObjectExecReturn("Loft: Creating a face from sketch failed");
 
-    // if the Base property has a valid shape, fuse the pipe into it
-    TopoDS_Shape base;
-    try {
-        base = getBaseShape();
-    } catch (const Base::Exception&) {
-        base = TopoDS_Shape();
+    auto multisections = Sections.getValues();
+
+    if (multisections.size() < 2 ) {
+        return new App::DocumentObjectExecReturn("Loft: At least two section are needed");
     }
- 
+
     try {
         //setup the location
-        this->positionByPrevious();
+        this->positionByBase();
         TopLoc_Location invObjLoc = this->getLocation().Inverted();
-        if(!base.IsNull())
-            base.Move(invObjLoc);
-             
-        //build up multisections
-        auto multisections = Sections.getValues();
-        if(multisections.empty())
-            return new App::DocumentObjectExecReturn("Loft: At least one section is needed");
-        
-        std::vector<std::vector<TopoDS_Wire>> wiresections;
-        for(TopoDS_Wire& wire : wires)
-            wiresections.push_back(std::vector<TopoDS_Wire>(1, wire));
-                
-        for(App::DocumentObject* obj : multisections) {
-            if(!obj->isDerivedFrom(Part::Feature::getClassTypeId()))
-                return  new App::DocumentObjectExecReturn("Loft: All sections need to be part features");
-            
-            TopExp_Explorer ex;
-            size_t i=0;
-            for (ex.Init(static_cast<Part::Feature*>(obj)->Shape.getValue(), TopAbs_WIRE); ex.More(); ex.Next(), ++i) {
-                if(i>=wiresections.size())
-                    return new App::DocumentObjectExecReturn("Loft: Sections need to have the same amount of inner wires as the base section");
-                wiresections[i].push_back(TopoDS::Wire(ex.Current()));
+
+        std::vector < std::vector<TopoDS_Wire> > wiresections;
+
+        // Process the first section separately to calculate the number of wires eac section should has
+        std::vector<TopoDS_Wire> front_wiresection;
+
+        front_wiresection = SketchBased::getSketchWires (
+                SketchBased::getVerifiedSketch ( multisections[0] ) );
+
+        for(TopoDS_Wire& wire : front_wiresection)
+            wiresections.push_back ( std::vector<TopoDS_Wire> (1, wire) );
+
+        // Process other wiresections
+        for(auto objIt = std::next ( multisections.cbegin () ); objIt != multisections.cend (); ++objIt ) {
+            std::vector<TopoDS_Wire> wires = SketchBased::getSketchWires (
+                SketchBased::getVerifiedSketch ( *objIt ) );
+            if ( wires.size ()!=wiresections.size() ) {
+                return new App::DocumentObjectExecReturn(
+                        "Loft: Sections need to have the same amount of inner wires as the base section" );
             }
-            if(i<wiresections.size())
-                    return new App::DocumentObjectExecReturn("Loft: Sections need to have the same amount of inner wires as the base section");
-            
+
+            for (size_t i=0; i<wires.size (); i++) {
+                wiresections[i].push_back(TopoDS::Wire ( wires[i] ) );
+            }
         }
-        
+
         //build all shells
         std::vector<TopoDS_Shape> shells;
         for(std::vector<TopoDS_Wire>& wires : wiresections) {
-            
+
             BRepOffsetAPI_ThruSections mkTS(false, Ruled.getValue(), Precision::Confusion());
 
             for(TopoDS_Wire& wire : wires)   {
@@ -139,35 +117,36 @@ App::DocumentObjectExecReturn *Loft::execute(void)
             mkTS.Build();
             if (!mkTS.IsDone())
                 return new App::DocumentObjectExecReturn("Loft could not be build");
-            
+
             //build the shell use simulate to get the top and bottom wires in an easy way
             shells.push_back(mkTS.Shape());
         }
-        
+
         //build the top and bottom face, sew the shell and build the final solid
-        TopoDS_Shape front = makeFace(wires);
+        TopoDS_Shape front = makeFace(front_wiresection);
         front.Move(invObjLoc);
+
         std::vector<TopoDS_Wire> backwires;
         for(std::vector<TopoDS_Wire>& wires : wiresections)
             backwires.push_back(wires.back());
-        
+
         TopoDS_Shape back = makeFace(backwires);
-        
+
         BRepBuilderAPI_Sewing sewer;
         sewer.SetTolerance(Precision::Confusion());
         sewer.Add(front);
         sewer.Add(back);
         for(TopoDS_Shape& s : shells)
-            sewer.Add(s);      
-        
+            sewer.Add(s);
+
         sewer.Perform();
-        
+
         //build the solid
         BRepBuilderAPI_MakeSolid mkSolid;
         mkSolid.Add(TopoDS::Shell(sewer.SewedShape()));
         if(!mkSolid.IsDone())
             return new App::DocumentObjectExecReturn("Loft: Result is not a solid");
-        
+
         TopoDS_Shape result = mkSolid.Shape();
         BRepClass3d_SolidClassifier SC(result);
         SC.PerformInfinitePoint(Precision::Confusion());
@@ -176,48 +155,14 @@ App::DocumentObjectExecReturn *Loft::execute(void)
         }
 
         AddSubShape.setValue(result);
-        
-        if(base.IsNull()) {
-            Shape.setValue(result);
-            return App::DocumentObject::StdReturn;
-        }
-        
-        if(getAddSubType() == FeatureAddSub::Additive) {
-                       
-            BRepAlgoAPI_Fuse mkFuse(base, result);
-            if (!mkFuse.IsDone())
-                return new App::DocumentObjectExecReturn("Loft: Adding the loft failed");
-            // we have to get the solids (fuse sometimes creates compounds)
-            TopoDS_Shape boolOp = this->getSolid(mkFuse.Shape());
-            // lets check if the result is a solid
-            if (boolOp.IsNull())
-                return new App::DocumentObjectExecReturn("Loft: Resulting shape is not a solid");
-            
-            boolOp = refineShapeIfActive(boolOp);
-            Shape.setValue(boolOp);
-        }
-        else if(getAddSubType() == FeatureAddSub::Subtractive) {
-            
-            BRepAlgoAPI_Cut mkCut(base, result);
-            if (!mkCut.IsDone())
-                return new App::DocumentObjectExecReturn("Loft: Subtracting the loft failed");
-            // we have to get the solids (fuse sometimes creates compounds)
-            TopoDS_Shape boolOp = this->getSolid(mkCut.Shape());
-            // lets check if the result is a solid
-            if (boolOp.IsNull())
-                return new App::DocumentObjectExecReturn("Loft: Resulting shape is not a solid");
-            
-            boolOp = refineShapeIfActive(boolOp);
-            Shape.setValue(boolOp);
-        }
-        
-        return App::DocumentObject::StdReturn;
-        
-        return SketchBased::execute();   
+
+        return FeatureAddSub::execute();
     }
     catch (Standard_Failure) {
         Handle_Standard_Failure e = Standard_Failure::Caught();
         return new App::DocumentObjectExecReturn(e->GetMessageString());
+    } catch (const Base::Exception& e) {
+        return new App::DocumentObjectExecReturn(e.what());
     }
     catch (...) {
         return new App::DocumentObjectExecReturn("Loft: A fatal error occurred when making the loft");

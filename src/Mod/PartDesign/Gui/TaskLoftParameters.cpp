@@ -44,9 +44,7 @@
 #include <Gui/Selection.h>
 #include <Gui/Command.h>
 #include <Mod/PartDesign/App/FeatureLoft.h>
-#include <Mod/Sketcher/App/SketchObject.h>
 #include <Mod/PartDesign/App/Body.h>
-#include "TaskSketchBasedParameters.h"
 #include "ReferenceSelection.h"
 
 using namespace PartDesignGui;
@@ -55,7 +53,7 @@ using namespace Gui;
 /* TRANSLATOR PartDesignGui::TaskLoftParameters */
 
 TaskLoftParameters::TaskLoftParameters(ViewProviderLoft *LoftView,bool newObj, QWidget *parent)
-    : TaskSketchBasedParameters(LoftView, parent, "PartDesign_Additive_Loft",tr("Loft parameters"))
+    : TaskFeatureParameters(LoftView, parent, "PartDesign_Additive_Loft",tr("Loft parameters"))
 {
     // we need a separate container widget to add all controls to
     proxy = new QWidget(this);
@@ -261,7 +259,7 @@ void TaskLoftParameters::onRefButtonRemvove(bool checked) {
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 TaskDlgLoftParameters::TaskDlgLoftParameters(ViewProviderLoft *LoftView,bool newObj)
-   : TaskDlgSketchBasedParameters(LoftView)
+   : TaskDlgFeatureParameters(LoftView)
 {
     assert(LoftView);
     parameter  = new TaskLoftParameters(LoftView,newObj);
@@ -278,7 +276,7 @@ bool TaskDlgLoftParameters::accept()
 {
     // TODO Fill this with commands (2015-09-11, Fat-Zer)
 
-    return TaskDlgSketchBasedParameters::accept ();
+    return TaskDlgFeatureParameters::accept ();
 }
 
 //==== calls from the TaskView ===============================================================

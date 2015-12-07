@@ -255,7 +255,7 @@ App::DocumentObjectExecReturn *Draft::execute(void)
     if (reversed)
         angle *= -1.0;
 
-    this->positionByBaseFeature();
+    this->positionByBase();
     // create an untransformed copy of the base shape
     Part::TopoShape baseShape(TopShape);
     baseShape.setTransform(Base::Matrix4D());

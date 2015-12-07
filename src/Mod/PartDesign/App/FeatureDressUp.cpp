@@ -57,13 +57,6 @@ short DressUp::mustExecute() const
 }
 
 
-void DressUp::positionByBaseFeature(void)
-{
-    Part::Feature *base = static_cast<Part::Feature*>(BaseFeature.getValue());
-    if (base && base->getTypeId().isDerivedFrom(Part::Feature::getClassTypeId()))
-        this->Placement.setValue(base->Placement.getValue());
-}
-
 Part::Feature *DressUp::getBaseObject(bool silent) const
 {
     Part::Feature *rv = Feature::getBaseObject(/* silent = */ true);

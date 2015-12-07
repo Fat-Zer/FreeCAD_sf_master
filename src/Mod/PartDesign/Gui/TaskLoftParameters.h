@@ -24,11 +24,9 @@
 #ifndef GUI_TASKVIEW_TaskLoftParameters_H
 #define GUI_TASKVIEW_TaskLoftParameters_H
 
-#include <Gui/TaskView/TaskView.h>
 #include <Gui/Selection.h>
-#include <Gui/TaskView/TaskDialog.h>
 
-#include "TaskSketchBasedParameters.h"
+#include "TaskFeatureParameters.h"
 #include "ViewProviderLoft.h"
 
 class Ui_TaskLoftParameters;
@@ -44,8 +42,7 @@ class ViewProvider;
 
 namespace PartDesignGui {
 
-
-class TaskLoftParameters : public TaskSketchBasedParameters
+class TaskLoftParameters : public TaskFeatureParameters, public Gui::SelectionObserver
 {
     Q_OBJECT
 
@@ -79,7 +76,7 @@ private:
 };
 
 /// simulation dialog for the TaskView
-class TaskDlgLoftParameters : public TaskDlgSketchBasedParameters
+class TaskDlgLoftParameters : public TaskDlgFeatureParameters
 {
     Q_OBJECT
 

@@ -42,7 +42,7 @@
 
 using namespace PartDesignGui;
 
-PROPERTY_SOURCE(PartDesignGui::ViewProviderLoft,PartDesignGui::ViewProvider)
+PROPERTY_SOURCE(PartDesignGui::ViewProviderLoft, PartDesignGui::ViewProviderAddSub)
 
 ViewProviderLoft::ViewProviderLoft()
 {
@@ -54,81 +54,16 @@ ViewProviderLoft::~ViewProviderLoft()
 
 std::vector<App::DocumentObject*> ViewProviderLoft::claimChildren(void)const
 {
-    std::vector<App::DocumentObject*> temp;
-    App::DocumentObject* sketch = static_cast<PartDesign::Loft*>(getObject())->Sketch.getValue();
-    if (sketch != NULL)
-        temp.push_back(sketch);
-
-    return temp;
-}
-
-void ViewProviderLoft::setupContextMenu(QMenu* menu, QObject* receiver, const char* member)
-{/*
-    QAction* act;
-    act = menu->addAction(QObject::tr("Edit pad"), receiver, member);
-    act->setData(QVariant((int)ViewProvider::Default));
-    PartGui::ViewProviderPart::setupContextMenu(menu, receiver, member);*/
-}
-
-bool ViewProviderLoft::doubleClicked(void)
-{
-    Gui::Command::doCommand(Gui::Command::Gui,"Gui.activeDocument().setEdit('%s',0)",this->pcObject->getNameInDocument());
-    return true;
-}
-
-bool ViewProviderLoft::setEdit(int ModNum)
-{
-    if (ModNum == ViewProvider::Default || ModNum == 1 ) {
-        
-        setPreviewDisplayMode(true);
-        
-        // When double-clicking on the item for this pad the
-        // object unsets and sets its edit mode without closing
-        // the task panel
-        Gui::TaskView::TaskDialog *dlg = Gui::Control().activeDialog();
-        TaskDlgLoftParameters *padDlg = qobject_cast<TaskDlgLoftParameters *>(dlg);
-        if (padDlg && padDlg->getLoftView() != this)
-            padDlg = 0; // another pad left open its task panel
-        if (dlg && !padDlg) {
-            QMessageBox msgBox;
-            msgBox.setText(QObject::tr("A dialog is already open in the task panel"));
-            msgBox.setInformativeText(QObject::tr("Do you want to close this dialog?"));
-            msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-            msgBox.setDefaultButton(QMessageBox::Yes);
-            int ret = msgBox.exec();
-            if (ret == QMessageBox::Yes)
-                Gui::Control().reject();
-            else
-                return false;
-        }
-
-        // clear the selection (convenience)
-        Gui::Selection().clearSelection();
-
-        // always change to PartDesign WB, remember where we come from
-        oldWb = Gui::Command::assureWorkbench("PartDesignWorkbench");
-
-        // start the edit dialog
-        if (padDlg)
-            Gui::Control().showDialog(padDlg);
-        else
-            Gui::Control().showDialog(new TaskDlgLoftParameters(this,ModNum == 1));
-        
-        return true;
-    }
-    else {
-        return ViewProviderPart::setEdit(ModNum);
-    }
-}
-
-void ViewProviderLoft::unsetEdit(int ModNum) {
-    setPreviewDisplayMode(false);
-    PartDesignGui::ViewProvider::unsetEdit(ModNum);
+    PartDesign::Loft* loft = Base::freecad_dynamic_cast <PartDesign::Loft> ( getObject () );
+    assert ( loft );
+    return loft->Sections.getValues ();
 }
 
 
 bool ViewProviderLoft::onDelete(const std::vector<std::string> &s)
-{/*
+{
+    // TODO Rewright this (2015-12-07, Fat-Zer)
+    /*
     PartDesign::Loft* pcLoft = static_cast<PartDesign::Loft*>(getObject());
 
     // get the Sketch
@@ -187,6 +122,11 @@ void ViewProviderLoft::highlightReferences(const bool on, bool auxillery)
             originalLineColors.clear();
         }
     }*/
+}
+
+TaskDlgFeatureParameters *ViewProviderLoft::getEditDialog()
+{
+    return new TaskDlgLoftParameters ( this );
 }
 
 QIcon ViewProviderLoft::getIcon(void) const {

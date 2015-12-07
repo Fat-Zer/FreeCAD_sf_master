@@ -24,7 +24,6 @@
 #ifndef PARTDESIGN_FeatureAdditive_H
 #define PARTDESIGN_FeatureAdditive_H
 
-#include <App/PropertyStandard.h>
 #include <Mod/Part/App/PropertyTopoShape.h>
 
 #include "Feature.h"
@@ -38,18 +37,31 @@ class PartDesignExport FeatureAddSub : public PartDesign::Feature
     PROPERTY_HEADER(PartDesign::FeatureAddSub);
 
 public:
+    /// The type of the addsub feature
     enum Type {
         Additive = 0,
-        Subtractive 
+        Subtractive
     };
-    
+
     FeatureAddSub();
 
-    Type getAddSubType();
-    
+    /// The added or substracted shape for the feature
     Part::PropertyPartShape   AddSubShape;
 
+    /// Returns addSubType value
+    Type getAddSubType()
+        { return addSubType; } 
+    
+    /**
+     * A general execute logic for addictive and substractive features that actually
+     * performs the addition and substraction. Should be called in the end of the execute
+     * in derived classes after setting the AddSubShape property to correct value
+     */
+    // TODO Make all derived classes use it (2015-12-07, Fat-Zer)
+    virtual App::DocumentObjectExecReturn *execute (void);
+
 protected:
+    /// Determines whether the feature addictive or substractive
     Type addSubType;
 };
 

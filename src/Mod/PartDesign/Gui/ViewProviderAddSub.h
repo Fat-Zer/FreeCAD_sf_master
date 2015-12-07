@@ -41,8 +41,12 @@ public:
     
     virtual void attach(App::DocumentObject*);
     virtual void updateData(const App::Property*);
+    virtual std::vector<std::string> getDisplayModes () const;
+    virtual void setDisplayMode (const char* ModeName);
     
 protected: 
+    virtual bool  setEdit(int ModNum);
+    virtual void unsetEdit(int ModNum);
     void updateAddSubShapeIndicator();
     void setPreviewDisplayMode(bool);
     

@@ -78,7 +78,7 @@ App::DocumentObjectExecReturn *Chamfer::execute(void)
 
     double size = Size.getValue();
 
-    this->positionByBaseFeature();
+    this->positionByBase();
     // create an untransformed copy of the basefeature shape
     Part::TopoShape baseShape(TopShape);
     baseShape.setTransform(Base::Matrix4D());

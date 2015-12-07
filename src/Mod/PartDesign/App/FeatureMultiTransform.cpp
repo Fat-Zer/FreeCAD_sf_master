@@ -49,9 +49,9 @@ MultiTransform::MultiTransform()
     Transformations.setSize(0);
 }
 
-void MultiTransform::positionBySupport(void)
+void MultiTransform::positionByBase(void)
 {
-    PartDesign::Transformed::positionBySupport();
+    PartDesign::Transformed::positionByBase();
     std::vector<App::DocumentObject*> transFeatures = Transformations.getValues();
     for (std::vector<App::DocumentObject*>::const_iterator f = transFeatures.begin();
          f != transFeatures.end(); ++f) {

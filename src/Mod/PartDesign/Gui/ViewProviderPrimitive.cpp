@@ -72,6 +72,7 @@ void ViewProviderPrimitive::attach(App::DocumentObject* obj) {
 
 bool ViewProviderPrimitive::setEdit(int ModNum)
 {
+    // TODO Delete this in favor to AddSub (2015-12-07, Fat-Zer)
     if (ModNum == ViewProvider::Default ) {
         setPreviewDisplayMode(true);
         

@@ -45,8 +45,6 @@ public:
     App::PropertyLinkSub Base;
 
     short mustExecute() const;
-    /// updates the Placement property from the Placement of the BaseFeature
-    void positionByBaseFeature(void);
     /**
      * Returns the BaseFeature property's object if it's set othervice returns Base's
      * feature property object otherviceeature property's object (if any)

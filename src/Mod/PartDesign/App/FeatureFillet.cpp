@@ -74,7 +74,7 @@ App::DocumentObjectExecReturn *Fillet::execute(void)
     
     double radius = Radius.getValue();
 
-    this->positionByBaseFeature();
+    this->positionByBase();
 
     // create an untransformed copy of the base shape
     Part::TopoShape baseShape(TopShape);

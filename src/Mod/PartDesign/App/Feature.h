@@ -70,6 +70,10 @@ public:
 
 protected:
 
+    /// Updates the Placement property from the Placement of the BaseFeature.
+    ///  May be overloaded in derived classes to handle more complicated cases
+    virtual void positionByBase(void);
+
     /**
      * Get a solid of the given shape. If no solid is found an exception is raised.
      */
@@ -80,6 +84,8 @@ protected:
     /// Make a shape from a base plane (convenience method)
     static gp_Pln makePlnFromPlane(const App::DocumentObject* obj);
     static TopoDS_Shape makeShapeFromPlane(const App::DocumentObject* obj);
+    // Refine the given shape if active in the settings
+    static TopoDS_Shape refineShapeIfActive(const TopoDS_Shape&);
 };
 
 } //namespace PartDesign

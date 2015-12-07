@@ -59,12 +59,12 @@ public:
     
     /// The references datum defining the primtive location
     App::PropertyLink CoordinateSystem;
-    
-    /// Do nothing, just to suppress warning, must be redefined in derived classes
-    virtual App::DocumentObjectExecReturn* execute() {
-        return PartDesign::FeatureAddSub::execute();
-    };
+
+    using FeatureAddSub::execute;
+
 protected:
+    virtual void positionByBase(void);
+
     //make the boolean ops with the primitives provided by the derived features
     App::DocumentObjectExecReturn* execute(const TopoDS_Shape& primitiveShape);
     Type primitiveType = Box;   

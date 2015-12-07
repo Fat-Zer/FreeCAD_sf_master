@@ -40,17 +40,14 @@ public:
 
     /// grouping handling 
     std::vector<App::DocumentObject*> claimChildren(void)const;
-    void setupContextMenu(QMenu*, QObject*, const char*);
-    bool doubleClicked();
 
     virtual bool onDelete(const std::vector<std::string> &);
     void highlightReferences(const bool on, bool auxillery);
     
 protected:
-    virtual bool setEdit(int ModNum);
-    virtual void unsetEdit(int ModNum);
     virtual QIcon getIcon(void) const;
-    
+    virtual TaskDlgFeatureParameters *getEditDialog();
+
 private:
     std::vector<App::Color> originalLineColors;
 };

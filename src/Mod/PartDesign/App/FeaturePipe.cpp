@@ -133,7 +133,7 @@ App::DocumentObjectExecReturn *Pipe::execute(void)
  
     try {
         //setup the location
-        this->positionByPrevious();
+        this->positionByBase();
         TopLoc_Location invObjLoc = this->getLocation().Inverted();
         if(!base.IsNull())
             base.Move(invObjLoc);

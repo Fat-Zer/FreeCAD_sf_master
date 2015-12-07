@@ -24,7 +24,6 @@
 #include "PreCompiled.h"
 #ifndef _PreComp_
 # include <Standard_Failure.hxx>
-# include <TopoDS_Solid.hxx>
 # include <TopExp_Explorer.hxx>
 # include <TopoDS.hxx>
 # include <BRep_Tool.hxx>
@@ -33,19 +32,15 @@
 # include <BRepBuilderAPI_MakeFace.hxx>
 #endif
 
-// TODO Cleanup headers (2015-09-04, Fat-Zer)
-#include <Base/Exception.h>
-#include "App/Document.h"
-#include "App/OriginFeature.h"
-#include "Body.h"
+#include <App/Application.h>
+#include <App/OriginFeature.h>
+#include <Mod/Part/App/DatumFeature.h>
+#include <Mod/Part/App/modelRefine.h>
+
+
 #include "Feature.h"
-#include "Mod/Part/App/DatumFeature.h"
-
-#include <Base/Console.h>
-
 
 namespace PartDesign {
-
 
 PROPERTY_SOURCE(PartDesign::Feature,Part::Feature)
 
@@ -114,6 +109,14 @@ Part::Feature* Feature::getBaseObject(bool silent) const {
     return BaseObject;
 }
 
+void Feature::positionByBase()
+{
+    // TODO May be here better to throw exception (silent=false) (2015-07-27, Fat-Zer)
+    Part::Feature *base = getBaseObject(/* silent =*/ true);
+    if (base && base->getTypeId().isDerivedFrom(Part::Feature::getClassTypeId()))
+        this->Placement.setValue(base->Placement.getValue());
+}
+
 const TopoDS_Shape& Feature::getBaseShape() const {
     const Part::Feature* BaseObject = getBaseObject();
 
@@ -163,6 +166,19 @@ TopoDS_Shape Feature::makeShapeFromPlane(const App::DocumentObject* obj)
         throw Base::Exception("Feature: Could not create shape from base plane");
 
     return builder.Shape();
+}
+
+TopoDS_Shape Feature::refineShapeIfActive(const TopoDS_Shape& oldShape)
+{
+    Base::Reference<ParameterGrp> hGrp = App::GetApplication().GetUserParameter()
+        .GetGroup("BaseApp")->GetGroup("Preferences")->GetGroup("Mod/PartDesign");
+    if (hGrp->GetBool("RefineModel", false)) {
+        Part::BRepBuilderAPI_RefineModel mkRefine(oldShape);
+        TopoDS_Shape resShape = mkRefine.Shape();
+        return resShape;
+    }
+
+    return oldShape;
 }
 
 }

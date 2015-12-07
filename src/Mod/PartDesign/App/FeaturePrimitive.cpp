@@ -68,81 +68,27 @@ FeaturePrimitive::FeaturePrimitive()
     ADD_PROPERTY_TYPE(CoordinateSystem, (0), "Primitive", App::Prop_None, "References to build the location of the primitive");
 }
 
-TopoDS_Shape FeaturePrimitive::refineShapeIfActive(const TopoDS_Shape& oldShape) const
+void FeaturePrimitive::positionByBase()
 {
-    Base::Reference<ParameterGrp> hGrp = App::GetApplication().GetUserParameter()
-        .GetGroup("BaseApp")->GetGroup("Preferences")->GetGroup("Mod/PartDesign");
-    if (hGrp->GetBool("RefineModel", false)) {
-        Part::BRepBuilderAPI_RefineModel mkRefine(oldShape);
-        TopoDS_Shape resShape = mkRefine.Shape();
-        return resShape;
+    PartDesign::CoordinateSystem* cs = 
+        Base::freecad_dynamic_cast<PartDesign::CoordinateSystem> (CoordinateSystem.getValue());
+    if(cs) {
+        Placement.setValue(cs->Placement.getValue());
+    } else {
+        throw Base::Exception("Coordinate system for primitive feature is missing");
     }
-
-    return oldShape;
 }
 
 App::DocumentObjectExecReturn* FeaturePrimitive::execute(const TopoDS_Shape& primitiveShape)
 {
     try {
         //transform the primitive in the correct coordinance
-        App::DocumentObject* cs =  CoordinateSystem.getValue();
-        if(cs && cs->getTypeId() == PartDesign::CoordinateSystem::getClassTypeId())
-            Placement.setValue(static_cast<PartDesign::CoordinateSystem*>(cs)->Placement.getValue());
-        else 
-            Placement.setValue(Base::Placement());
-        
-        //if we have no base we just add the standart primitive shape
-        TopoDS_Shape base;
-        try{
-             //if we have a base shape we need to make sure that it does not get our transformation to
-             BRepBuilderAPI_Transform trsf(getBaseShape(), getLocation().Transformation().Inverted(), true);
-             base = trsf.Shape();
-        }
-        catch(const Base::Exception&) {
+        positionByBase ();
 
-             //as we use this for preview we can add it even if useless for subtractive
-             AddSubShape.setValue(primitiveShape);
+        //as we use this for preview we can add it even if useless for subtractive
+        AddSubShape.setValue(primitiveShape);
              
-             if(getAddSubType() == FeatureAddSub::Additive)
-                 Shape.setValue(primitiveShape);
-             else 
-                 return new App::DocumentObjectExecReturn("Cannot subtract primitive feature without base feature");   
-             
-             return  App::DocumentObject::StdReturn;
-        }
-         
-        if(getAddSubType() == FeatureAddSub::Additive) {
-            
-            BRepAlgoAPI_Fuse mkFuse(base, primitiveShape);
-            if (!mkFuse.IsDone())
-                return new App::DocumentObjectExecReturn("Adding the primitive failed");
-            // we have to get the solids (fuse sometimes creates compounds)
-            TopoDS_Shape boolOp = this->getSolid(mkFuse.Shape());
-            // lets check if the result is a solid
-            if (boolOp.IsNull())
-                return new App::DocumentObjectExecReturn("Resulting shape is not a solid");
-            
-            boolOp = refineShapeIfActive(boolOp);
-            Shape.setValue(boolOp);
-            AddSubShape.setValue(primitiveShape);
-        }
-        else if(getAddSubType() == FeatureAddSub::Subtractive) {
-            
-            BRepAlgoAPI_Cut mkCut(base, primitiveShape);
-            if (!mkCut.IsDone())
-                return new App::DocumentObjectExecReturn("Subtracting the primitive failed");
-            // we have to get the solids (fuse sometimes creates compounds)
-            TopoDS_Shape boolOp = this->getSolid(mkCut.Shape());
-            // lets check if the result is a solid
-            if (boolOp.IsNull())
-                return new App::DocumentObjectExecReturn("Resulting shape is not a solid");
-            
-            boolOp = refineShapeIfActive(boolOp);
-            Shape.setValue(boolOp);
-            AddSubShape.setValue(primitiveShape);
-        }
-        
-        
+        return FeatureAddSub::execute ();
     }
     catch (Standard_Failure) {
         Handle_Standard_Failure e = Standard_Failure::Caught();

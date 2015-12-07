@@ -65,14 +65,6 @@ Transformed::Transformed()
     Placement.StatusBits.set(2, true);
 }
 
-void Transformed::positionBySupport(void)
-{
-    // TODO May be here better to throw exception (silent=false) (2015-07-27, Fat-Zer)
-    Part::Feature *support = getBaseObject(/* silent =*/ true);
-    if (support)
-        this->Placement.setValue(support->Placement.getValue());
-}
-
 Part::Feature* Transformed::getBaseObject(bool silent) const {
     Part::Feature *rv = Feature::getBaseObject(/* silent = */ true);
     if (rv) {
@@ -196,7 +188,7 @@ App::DocumentObjectExecReturn *Transformed::execute(void)
     if (originals.empty()) // typically InsideMultiTransform
         return App::DocumentObject::StdReturn;
 
-    this->positionBySupport();
+    this->positionByBase();
 
     // get transformations from subclass by calling virtual method
     std::vector<gp_Trsf> transformations;

@@ -93,7 +93,7 @@ class _InvoluteGear:
             involute.CreateInternalGear(w, obj.Modules.Value,obj.NumberOfTeeth, obj.PressureAngle.Value, obj.HighPrecision)
         gearw = Part.Wire([o.toShape() for o in w.wire])
         obj.Shape = gearw
-        obj.positionBySupport();
+        obj.positionByBase();
         return
         
         
