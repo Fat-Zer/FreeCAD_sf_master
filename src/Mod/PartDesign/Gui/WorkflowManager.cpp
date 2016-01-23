@@ -70,7 +70,7 @@ WorkflowManager::~WorkflowManager() {
 
 
 // Those destruction/construction is not really needed and could be done in the instance()
-// but to make things a bit more cleare better to keep them around.
+// but to make things a bit more clear better to keep them around.
 void WorkflowManager::init() {
     if (!_instance) {
         _instance = new WorkflowManager();
@@ -81,7 +81,7 @@ void WorkflowManager::init() {
 
 WorkflowManager *WorkflowManager::instance() {
     if (!_instance) {
-        throw Base::Exception( "Trying to instance the WorkflowManager manager before init() was called." );
+        WorkflowManager::init();
     }
     return _instance;
 }
