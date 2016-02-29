@@ -389,38 +389,39 @@ void CmdPartDesignNewSketch::activated(int iMsg)
 
         if (!pcActiveBody->hasFeature(obj)) {
             if ( !obj->isDerivedFrom ( App::Plane::getClassTypeId() ) )  {
-                // TODO check here if the plane associated with right part/body (2015-09-01, Fat-Zer)
-
-                auto pcActivePart = PartDesignGui::getPartFor(pcActiveBody, false);
-
-                //check the prerequisites for the selected objects
-                //the user has to decide which option we should take if external references are used
-                // TODO share this with UnifiedDatumCommand() (2015-10-20, Fat-Zer)
-                QDialog* dia = new QDialog;
-                Ui_Dialog dlg;
-                dlg.setupUi(dia);
-                dia->setModal(true);
-                int result = dia->exec();
-                if(result == QDialog::DialogCode::Rejected)
-                    return;
-                else if(!dlg.radioXRef->isChecked()) {
-
-                    std::string sub;
-                    if(FaceFilter.match())
-                        sub = FaceFilter.Result[0][0].getSubNames()[0];
-                    auto copy = PartDesignGui::TaskFeaturePick::makeCopy(obj, sub, dlg.radioIndependent->isChecked());
-
-                    if(pcActiveBody)
-                        pcActiveBody->addFeature(copy);
-                    else if (pcActivePart)
-                        pcActivePart->addObject(copy);
-
-                    if(PlaneFilter.match())
-                        supportString = std::string("(App.activeDocument().") + copy->getNameInDocument() + ", '')";
-                    else
-                        //it is ensured that only a single face is selected, hence it must always be Face1 of the shapebinder
-                        supportString = std::string("(App.activeDocument().") + copy->getNameInDocument() + ", 'Face1')";
-                }
+// TODO rewright after finishing task Picker Feature (2015-12-09, Fat-Zer)
+//                // TODO check here if the plane associated with right part/body (2015-09-01, Fat-Zer)
+//
+//                auto pcActivePart = PartDesignGui::getPartFor(pcActiveBody, false);
+//
+//                //check the prerequisites for the selected objects
+//                //the user has to decide which option we should take if external references are used
+//                // TODO share this with UnifiedDatumCommand() (2015-10-20, Fat-Zer)
+//                QDialog* dia = new QDialog;
+//                Ui_Dialog dlg;
+//                dlg.setupUi(dia);
+//                dia->setModal(true);
+//                int result = dia->exec();
+//                if(result == QDialog::DialogCode::Rejected)
+//                    return;
+//                else if(!dlg.radioXRef->isChecked()) {
+//
+//                    std::string sub;
+//                    if(FaceFilter.match())
+//                        sub = FaceFilter.Result[0][0].getSubNames()[0];
+//                    auto copy = PartDesignGui::TaskFeaturePick::makeCopy(obj, sub, dlg.radioIndependent->isChecked());
+//
+//                    if(pcActiveBody)
+//                        pcActiveBody->addFeature(copy);
+//                    else if (pcActivePart)
+//                        pcActivePart->addObject(copy);
+//
+//                    if(PlaneFilter.match())
+//                        supportString = std::string("(App.activeDocument().") + copy->getNameInDocument() + ", '')";
+//                    else
+//                        //it is ensured that only a single face is selected, hence it must always be Face1 of the shapebinder
+//                        supportString = std::string("(App.activeDocument().") + copy->getNameInDocument() + ", 'Face1')";
+//                }
             }
         }
 
@@ -439,20 +440,22 @@ void CmdPartDesignNewSketch::activated(int iMsg)
     }
     else {
         // Get a valid plane from the user
-        unsigned validPlanes = 0;
 
-        App::GeoFeatureGroup* geoGroup = App::GeoFeatureGroup::getGroupOfObject ( pcActiveBody );
+// TODO rewright after finishing task Picker Feature (2015-12-09, Fat-Zer)
+//        App::GeoFeatureGroup* geoGroup = App::GeoFeatureGroup::getGroupOfObject ( pcActiveBody );
 
         std::vector<App::DocumentObject*> planes;
-        std::vector<PartDesignGui::TaskFeaturePick::featureStatus> status;
-
-        // Baseplanes are preaprooved
+        PartDesignGui::FeaturePicker picker;
+//
+//        // Baseplanes are preaprooved
         if ( pcActiveBody ) {
             try {
-                for ( auto plane: pcActiveBody->getOrigin ()->planes() ) {
-                    planes.push_back (plane);
-                    status.push_back(PartDesignGui::TaskFeaturePick::basePlane);
-                    validPlanes++;
+                for ( auto plane: pcActiveBody->getOrigin ()->planes () ) {
+                    static const PartDesignGui::FeaturePicker::StatusSet baseplaneStatus(
+                            1 << PartDesignGui::FeaturePicker::basePlane |
+                            1 << PartDesignGui::FeaturePicker::validFeature);
+
+                    picker.setFeatureStatus (plane, baseplaneStatus);
                 }
             } catch (const Base::Exception &ex) {
                 Base::Console().Error ("%s\n", ex.what() );
@@ -463,95 +466,48 @@ void CmdPartDesignNewSketch::activated(int iMsg)
             getDocument()->getObjectsOfType(PartDesign::Plane::getClassTypeId());
 
         for (auto plane: datumPlanes) {
-            planes.push_back ( plane );
+            PartDesignGui::FeaturePicker::StatusSet planeStatus;
+            planeStatus |= PartDesignGui::FeaturePicker::validFeature;
             // Check whether this plane belongs to the active body
-            if ( pcActiveBody && pcActiveBody->hasFeature(plane) ) {
-                if ( !pcActiveBody->isAfterInsertPoint ( plane ) ) {
-                    validPlanes++;
-                    status.push_back(PartDesignGui::TaskFeaturePick::validFeature);
-                } else {
-                    status.push_back(PartDesignGui::TaskFeaturePick::afterTip);
-                }
-            } else {
-                PartDesign::Body *planeBody = PartDesign::Body::findBodyOf (plane);
-                if ( planeBody ) {
-                    if ( ( geoGroup && geoGroup->hasObject ( planeBody, true ) ) ||
-                           !App::GeoFeatureGroup::getGroupOfObject (planeBody) ) {
-                        status.push_back ( PartDesignGui::TaskFeaturePick::otherBody );
-                    } else {
-                        status.push_back ( PartDesignGui::TaskFeaturePick::otherPart );
-                    }
-                } else {
-                    if ( ( geoGroup && geoGroup->hasObject ( plane, true ) ) ||
-                           !App::GeoFeatureGroup::getGroupOfObject ( plane ) ) {
-                        status.push_back ( PartDesignGui::TaskFeaturePick::otherPart );
-                    } else if (pcActiveBody) {
-                        status.push_back ( PartDesignGui::TaskFeaturePick::notInBody );
-                    } else { // if we are outside a body count it as valid
-                        validPlanes++;
-                        status.push_back(PartDesignGui::TaskFeaturePick::validFeature);
-                    }
-                }
+            planeStatus |= PartDesignGui::FeaturePicker::bodyRelationStatus (plane, pcActiveBody);
+            picker.setFeatureStatus (plane, planeStatus);
+        }
+
+        auto validPlanes = picker.getFeaturesWithStatus (  PartDesignGui::FeaturePicker::validFeature );
+
+        App::DocumentObject* plane = nullptr;
+
+        if ( validPlanes.empty() ) {
+            QMessageBox::warning(Gui::getMainWindow(), QObject::tr("No valid planes in this document"),
+                QObject::tr("Please create a plane first or select a face to sketch on"));
+        } else {
+            if (PartDesignGui::TaskDlgFeaturePick::safeExecute ( &picker ) == 0) {
+                auto pickedPlanes = picker.getPickedFeatures ();
+                assert (pickedPlanes.size() == 1);
+                plane = pickedPlanes.front ();
             }
         }
 
-        if (validPlanes == 0) {
-            QMessageBox::warning(Gui::getMainWindow(), QObject::tr("No valid planes in this document"),
-                QObject::tr("Please create a plane first or select a face to sketch on"));
-            return;
-        }
-
-        auto accepter = [=](const std::vector<App::DocumentObject*>& features) -> bool {
-
-            if(features.empty())
-                return false;
-
-            return true;
-        };
-
-        auto worker = [=](const std::vector<App::DocumentObject*>& features) {
-            App::Plane* plane = static_cast<App::Plane*>(features.front());
+        if (plane) {
             std::string FeatName = getUniqueObjectName("Sketch");
             std::string supportString = std::string("(App.activeDocument().") + plane->getNameInDocument() +
                                         ", [''])";
 
-            Gui::Command::openCommand("Create a new Sketch");
-            Gui::Command::doCommand(Doc,"App.activeDocument().addObject('Sketcher::SketchObject','%s')",FeatName.c_str());
-            Gui::Command::doCommand(Doc,"App.activeDocument().%s.Support = %s",FeatName.c_str(),supportString.c_str());
-            Gui::Command::doCommand(Doc,"App.activeDocument().%s.MapMode = '%s'",FeatName.c_str(),Attacher::AttachEngine::eMapModeStrings[Attacher::mmFlatFace]);
+            Gui::Command::openCommand ( QObject::tr("Create a new Sketch").toUtf8 () );
+            Gui::Command::doCommand(Doc,"App.activeDocument().addObject('Sketcher::SketchObject','%s')",
+                    FeatName.c_str());
+            Gui::Command::doCommand(Doc,"App.activeDocument().%s.Support = %s",
+                    FeatName.c_str(), supportString.c_str());
+            Gui::Command::doCommand(Doc,"App.activeDocument().%s.MapMode = '%s'",
+                    FeatName.c_str(), Attacher::AttachEngine::eMapModeStrings[Attacher::mmFlatFace]);
             Gui::Command::updateActive(); // Make sure the Support's Placement property is updated
-            Gui::Command::doCommand(Doc,"App.activeDocument().%s.addFeature(App.activeDocument().%s)",
-                        pcActiveBody->getNameInDocument(), FeatName.c_str());
+            if (pcActiveBody) {
+                Gui::Command::doCommand(Doc,"App.activeDocument().%s.addFeature(App.activeDocument().%s)",
+                            pcActiveBody->getNameInDocument(), FeatName.c_str());
+            }
+            // TODO Set a cammera to sketch (2016-02-29, Fat-Zer)
             //doCommand(Gui,"Gui.activeDocument().activeView().setCamera('%s')",cam.c_str());
             Gui::Command::doCommand(Gui,"Gui.activeDocument().setEdit('%s')",FeatName.c_str());
-        };
-
-        // If there is more than one possibility, show dialog and let user pick plane
-        if (validPlanes > 1) {
-
-           Gui::TaskView::TaskDialog *dlg = Gui::Control().activeDialog();
-           PartDesignGui::TaskDlgFeaturePick *pickDlg = qobject_cast<PartDesignGui::TaskDlgFeaturePick *>(dlg);
-           if (dlg && !pickDlg) {
-                QMessageBox msgBox;
-                msgBox.setText(QObject::tr("A dialog is already open in the task panel"));
-                msgBox.setInformativeText(QObject::tr("Do you want to close this dialog?"));
-                msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-                msgBox.setDefaultButton(QMessageBox::Yes);
-                int ret = msgBox.exec();
-                if (ret == QMessageBox::Yes)
-                    Gui::Control().closeDialog();
-                else
-                    return;
-            }
-
-            if(dlg)
-                Gui::Control().closeDialog();
-
-            Gui::Selection().clearSelection();
-            Gui::Control().showDialog(new PartDesignGui::TaskDlgFeaturePick(planes, status, accepter, worker));
-        }
-        else {
-            worker(planes);
         }
     }
 }
@@ -615,214 +571,124 @@ void finishFeature(const Gui::Command* cmd, const std::string& FeatName,
 // Common utility functions for SketchBased features
 //===========================================================================
 
-// Take a list of Part2DObjects and classify them for creating a
-// SketchBased feature. FirstFreeSketch is the first free sketch in the same body 
-// or sketches.end() if non available. The returned number is the amount of free sketches
-const unsigned validateSketches(std::vector<App::DocumentObject*>& sketches,
-                                 std::vector<PartDesignGui::TaskFeaturePick::featureStatus>& status,
-                                 std::vector<App::DocumentObject*>::iterator& firstFreeSketch)
-{
-    // TODO Review the function for non-part bodies (2015-09-04, Fat-Zer)
-    PartDesign::Body* pcActiveBody = PartDesignGui::getBody(false);
-    App::Part* pcActivePart = PartDesignGui::getPartFor(pcActiveBody, false);
+/// Selects a proper sketch for a sketch based feature
+Part::Part2DObject * sketchBasedGetSketch ( Gui::Command* cmd ) {
+    Part::Part2DObject *rv = nullptr;
 
-    // TODO: If the user previously opted to allow multiple use of sketches or use of sketches from other bodies,
-    // then count these as valid sketches!
-    unsigned freeSketches = 0;
-    firstFreeSketch = sketches.end();
+    PartDesignGui::FeaturePicker picker;
 
-    for (std::vector<App::DocumentObject*>::iterator s = sketches.begin(); s != sketches.end(); s++) {
+    std::vector<App::DocumentObject*> sketches =
+        cmd->getSelection().getObjectsOfType ( Part::Part2DObject::getClassTypeId() );
 
-        if (!pcActiveBody) {
-            // We work in the old style outside any body
-            if (PartDesign::Body::findBodyOf (*s)) {
-                status.push_back(PartDesignGui::TaskFeaturePick::otherPart);
-                continue;
+    if ( sketches.size() != 0 ) {
+        if ( sketches.size() == 1 ) { // We got only one sketch selected verify that it's valid and use it
+            picker.addSketch ( sketches.front () );
+            auto status = picker.getStatus ( sketches.front () );
+            if ( status [ PartDesignGui::FeaturePicker::validFeature ] ) {
+                rv = Base::freecad_dynamic_cast < Part::Part2DObject > ( sketches.front () );
+                assert (rv);
+            } else {
+                QMessageBox::critical ( Gui::getMainWindow(), QObject::tr("Invalid selection"),
+                        QObject::tr("The sketch \"%1\" you selected is invalid.").
+                            arg ( QString::fromUtf8 ( sketches.front ()->Label.getValue () ) ) );
             }
-        } else if (!pcActiveBody->hasFeature(*s)) {
-            // Check whether this plane belongs to a body of the same part
-            PartDesign::Body* b = PartDesign::Body::findBodyOf(*s);
-            if(!b)
-                status.push_back(PartDesignGui::TaskFeaturePick::notInBody);
-            else if(pcActivePart && pcActivePart->hasObject(b, true))
-                status.push_back(PartDesignGui::TaskFeaturePick::otherBody);
-            else
-                status.push_back(PartDesignGui::TaskFeaturePick::otherPart);
-           
-            continue;
-        }
+        } else if ( sketches.size() != 0 ) {
+            // Multiple sketches are selected we should prompt the user to select which to use
+            for (auto sketch: sketches) {
+                picker.addSketch ( sketch );
+            }
 
-        //Base::Console().Error("Checking sketch %s\n", (*s)->getNameInDocument());
-        // Check whether this sketch is already being used by another feature
-        // Body features don't count...
-        std::vector<App::DocumentObject*> inList = (*s)->getInList();
-        std::vector<App::DocumentObject*>::iterator o = inList.begin();
-        while (o != inList.end()) {
-            //Base::Console().Error("Inlist: %s\n", (*o)->getNameInDocument());
-            if ((*o)->getTypeId().isDerivedFrom(PartDesign::Body::getClassTypeId()))
-                o = inList.erase(o); //ignore bodies
-            else if (!(  (*o)->getTypeId().isDerivedFrom(PartDesign::Feature::getClassTypeId())  ))
-                o = inList.erase(o); //ignore non-partDesign
-            else
-                ++o;
-        }
-        if (inList.size() > 0) {
-            status.push_back(PartDesignGui::TaskFeaturePick::isUsed);
-            continue;
-        }
+            auto validSketches = picker.getFeaturesWithStatus (  PartDesignGui::FeaturePicker::validFeature );
 
-        if (pcActiveBody && pcActiveBody->isAfterInsertPoint(*s)){
-            status.push_back(PartDesignGui::TaskFeaturePick::afterTip);
-            continue;
+            if ( validSketches.empty () ) {
+                QMessageBox::critical(Gui::getMainWindow(), QObject::tr("Invalid selection"),
+                        QObject::tr("All selected sketches are invalid.") );
+            } else {
+                if (PartDesignGui::TaskDlgFeaturePick::safeExecute ( &picker ) == 0) {
+                    auto pickedSketches = picker.getPickedFeatures ();
+                    assert (pickedSketches.size() == 1);
+                    rv = Base::freecad_dynamic_cast <Part2DObject> (*pickedSketches.begin ());
+                    assert (rv);
+                }
+            }
         }
+    } else { // no sketches were selected. Let user pick an object from valid ones available in document
+        sketches = cmd->getDocument()->getObjectsOfType(Part::Part2DObject::getClassTypeId());
+        for (auto sketch: sketches) {
+            picker.addSketch ( sketch );
+        }
+        auto strictValidSketches = picker.getFeaturesWithExactStatus (
+                PartDesignGui::FeaturePicker::StatusSet ( 1 << PartDesignGui::FeaturePicker::validFeature ) );
+        if (strictValidSketches.size ()== 1) { // we got only one really good sketch, use it
+            rv = Base::freecad_dynamic_cast <Part2DObject> (*strictValidSketches.begin ());
+            assert (rv);
+        } else {
+            // There are either no or multiple strictly valid sketches
+            auto validSketches = picker.getFeaturesWithStatus (  PartDesignGui::FeaturePicker::validFeature );
 
-        // Check whether the sketch shape is valid
-        Part::Part2DObject* sketch = static_cast<Part::Part2DObject*>(*s);
-        const TopoDS_Shape& shape = sketch->Shape.getValue();
-        if (shape.IsNull()) {
-            status.push_back(PartDesignGui::TaskFeaturePick::invalidShape);
-            continue;
+            if(validSketches.empty()) {
+                QMessageBox::warning(Gui::getMainWindow(), QObject::tr("No sketch to work on"),
+                        QObject::tr("No valid sketch is available in the document"));
+            } else {
+                // There are more than one valid sketch. run the picker dialog.
+                if (PartDesignGui::TaskDlgFeaturePick::safeExecute ( &picker ) == 0) {
+                    auto pickedSketches = picker.getPickedFeatures ();
+                    assert (pickedSketches.size() == 1);
+                    rv = Base::freecad_dynamic_cast <Part2DObject> (*pickedSketches.begin ());
+                    assert (rv);
+                }
+            }
         }
-
-        // count free wires
-        int ctWires=0;
-        TopExp_Explorer ex;
-        for (ex.Init(shape, TopAbs_WIRE); ex.More(); ex.Next()) {
-            ctWires++;
-        }
-        if (ctWires == 0) {
-            status.push_back(PartDesignGui::TaskFeaturePick::noWire);
-            continue;
-        }
-
-        // All checks passed - found a valid sketch
-        if (firstFreeSketch == sketches.end())
-            firstFreeSketch = s;
-        freeSketches++;
-        status.push_back(PartDesignGui::TaskFeaturePick::validFeature);
     }
 
-    return freeSketches;
+    if (rv) {
+        auto status = PartDesignGui::FeaturePicker::sketchStatus ( rv );
+        if ( status [ PartDesignGui::FeaturePicker::isExternal ] ) {
+            // TODO Run the dialog for selecting if/how to copy the feature (2015-12-22, Fat-Zer)
+        }
+    }
+
+// TODO rewright after finishing task Picker Feature (2015-12-09, Fat-Zer)
+//        auto* pcActivePart = PartDesignGui::getPartFor(pcActiveBody, false);
+//
+//        QDialog* dia = new QDialog;
+//        Ui_Dialog dlg;
+//        dlg.setupUi(dia);
+//        dia->setModal(true);
+//        int result = dia->exec();
+//        if(result == QDialog::DialogCode::Rejected)
+//            return;
+//        else if(!dlg.radioXRef->isChecked()) {
+//
+//                auto copy = PartDesignGui::TaskFeaturePick::makeCopy(sketches[0], "", dlg.radioIndependent->isChecked());
+//                auto oBody = PartDesignGui::getBodyFor(sketches[0], false);
+//                if(oBody)
+//                    pcActiveBody->addFeature(copy);
+//                else
+//                    pcActivePart->addObject(copy);`
+//
+//                sketches[0] = copy;
+//                firstFreeSketch = sketches.begin();
+//        }
+
+    return rv;
 }
 
 void prepareSketchBased(Gui::Command* cmd, const std::string& which,
                         boost::function<void (Part::Part2DObject*, std::string)> func)
 {
-    bool bNoSketchWasSelected = false;
-    // Get a valid sketch from the user
-    // First check selections
-    std::vector<App::DocumentObject*> sketches = cmd->getSelection().getObjectsOfType(Part::Part2DObject::getClassTypeId());
-    if (sketches.size() == 0) {//no sketches were selected. Let user pick an object from valid ones available in document
-        sketches = cmd->getDocument()->getObjectsOfType(Part::Part2DObject::getClassTypeId());
-        bNoSketchWasSelected = true;
-    }
-    
-    if(sketches.empty()) {
-            QMessageBox::warning(Gui::getMainWindow(), QObject::tr("No sketch to work on"),
-                QObject::tr("No sketch is available in the document"));
-            return;
-    }
-    
-    std::vector<PartDesignGui::TaskFeaturePick::featureStatus> status;
-    std::vector<App::DocumentObject*>::iterator firstFreeSketch;
-    int freeSketches = validateSketches(sketches, status, firstFreeSketch);
+    Part::Part2DObject *sketch = sketchBasedGetSketch (cmd);
+    if (!sketch)
+        return;
+    std::string FeatName = cmd->getUniqueObjectName(which.c_str());
 
-    auto accepter = [=](const std::vector<App::DocumentObject*>& features) -> bool {
+    Gui::Command::openCommand((std::string("Make ") + which).c_str());
+    Gui::Command::doCommand(Gui::Command::Doc,"App.activeDocument().addObject(\"PartDesign::%s\",\"%s\")",
+            which.c_str(), FeatName.c_str());
+    Gui::Command::doCommand(Gui::Command::Doc,"App.activeDocument().%s.Sketch = App.activeDocument().%s",
+            FeatName.c_str(), sketch->getNameInDocument());
 
-        if(features.empty())
-            return false;
-
-        return true;
-    };
-
-    auto worker = [which, cmd, func](std::vector<App::DocumentObject*> features) {
-
-        auto firstValidSketch = features.begin();
-        Part::Part2DObject* sketch = static_cast<Part::Part2DObject*>(*firstValidSketch);
-
-        std::string FeatName = cmd->getUniqueObjectName(which.c_str());
-
-        Gui::Command::openCommand((std::string("Make ") + which).c_str());
-        Gui::Command::doCommand(Gui::Command::Doc,"App.activeDocument().addObject(\"PartDesign::%s\",\"%s\")",
-                    which.c_str(), FeatName.c_str());
-        Gui::Command::doCommand(Gui::Command::Doc,"App.activeDocument().%s.Sketch = App.activeDocument().%s",
-                    FeatName.c_str(), sketch->getNameInDocument());
-
-        func(sketch, FeatName);
-    };
-
-    //if there is a sketch selected which is from annother body or part we need to bring up the
-    //pick task dialog to decide how those are handled
-    bool ext = std::find_if( status.begin(), status.end(),
-            [] (const PartDesignGui::TaskFeaturePick::featureStatus& s) {
-                return s == PartDesignGui::TaskFeaturePick::otherBody ||
-                    s == PartDesignGui::TaskFeaturePick::otherPart ||
-                    s == PartDesignGui::TaskFeaturePick::notInBody;
-            }
-        ) != status.end();
-        
-    // TODO Clean this up (2015-10-20, Fat-Zer)
-    auto* pcActiveBody = PartDesignGui::getBody(false);
-    if(pcActiveBody && !bNoSketchWasSelected && ext) {
-
-        auto* pcActivePart = PartDesignGui::getPartFor(pcActiveBody, false);
-
-        QDialog* dia = new QDialog;
-        Ui_Dialog dlg;
-        dlg.setupUi(dia);
-        dia->setModal(true);
-        int result = dia->exec();
-        if(result == QDialog::DialogCode::Rejected)
-            return;
-        else if(!dlg.radioXRef->isChecked()) {
-
-                auto copy = PartDesignGui::TaskFeaturePick::makeCopy(sketches[0], "", dlg.radioIndependent->isChecked());
-                auto oBody = PartDesignGui::getBodyFor(sketches[0], false);
-                if(oBody)
-                    pcActiveBody->addFeature(copy);
-                else
-                    pcActivePart->addObject(copy);
-
-                sketches[0] = copy;
-                firstFreeSketch = sketches.begin();
-        }
-    }
-    
-    // Show sketch choose dialog and let user pick sketch if no sketch was selected and no free one available or
-    // multiple free ones are available
-    if ( bNoSketchWasSelected && (freeSketches != 1) ) {
-
-        Gui::TaskView::TaskDialog *dlg = Gui::Control().activeDialog();
-        PartDesignGui::TaskDlgFeaturePick *pickDlg = qobject_cast<PartDesignGui::TaskDlgFeaturePick *>(dlg);
-        if (dlg && !pickDlg) {
-            QMessageBox msgBox;
-            msgBox.setText(QObject::tr("A dialog is already open in the task panel"));
-            msgBox.setInformativeText(QObject::tr("Do you want to close this dialog?"));
-            msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-            msgBox.setDefaultButton(QMessageBox::Yes);
-            int ret = msgBox.exec();
-            if (ret == QMessageBox::Yes)
-                Gui::Control().closeDialog();
-            else
-                return;
-        }
-
-        if(dlg)
-            Gui::Control().closeDialog();
-
-        Gui::Selection().clearSelection();
-        pickDlg = new PartDesignGui::TaskDlgFeaturePick(sketches, status, accepter, worker);
-        if(!bNoSketchWasSelected && ext)
-            pickDlg->showExternal(true);
-
-        Gui::Control().showDialog(pickDlg);
-    }
-    else {
-        std::vector<App::DocumentObject*> theSketch;
-        theSketch.push_back(*firstFreeSketch);
-        worker(theSketch);
-    }
-
+    func(sketch, FeatName);
 }
 
 void finishSketchBased(const Gui::Command* cmd, const Part::Part2DObject* sketch, const std::string& FeatName)
@@ -1451,38 +1317,39 @@ void prepareTransformed(Gui::Command* cmd, const std::string& which,
     std::vector<App::DocumentObject*> features = cmd->getSelection().getObjectsOfType(PartDesign::FeatureAddSub::getClassTypeId());
     // Next create a list of all eligible objects
     if (features.size() == 0) {
-        features = cmd->getDocument()->getObjectsOfType(PartDesign::FeatureAddSub::getClassTypeId());
-        // If there is more than one selected or eligible object, show dialog and let user pick one
-        if (features.size() > 1) {
-            std::vector<PartDesignGui::TaskFeaturePick::featureStatus> status;
-            for (unsigned i = 0; i < features.size(); i++)
-                status.push_back(PartDesignGui::TaskFeaturePick::validFeature);
-
-            Gui::TaskView::TaskDialog *dlg = Gui::Control().activeDialog();
-            PartDesignGui::TaskDlgFeaturePick *pickDlg = qobject_cast<PartDesignGui::TaskDlgFeaturePick *>(dlg);
-            if (dlg && !pickDlg) {
-                QMessageBox msgBox;
-                msgBox.setText(QObject::tr("A dialog is already open in the task panel"));
-                msgBox.setInformativeText(QObject::tr("Do you want to close this dialog?"));
-                msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-                msgBox.setDefaultButton(QMessageBox::Yes);
-                int ret = msgBox.exec();
-                if (ret == QMessageBox::Yes)
-                    Gui::Control().closeDialog();
-                else
-                    return;
-            }
-
-            if(dlg)
-                Gui::Control().closeDialog();
-
-            Gui::Selection().clearSelection();
-            Gui::Control().showDialog(new PartDesignGui::TaskDlgFeaturePick(features, status, accepter, worker));
-        } else {
-            QMessageBox::warning(Gui::getMainWindow(), QObject::tr("No valid features in this document"),
-                QObject::tr("Please create a subtractive or additive feature first"));
-            return;
-        }
+// TODO rewright after finishing task Picker Feature (2015-12-09, Fat-Zer)
+//        features = cmd->getDocument()->getObjectsOfType(PartDesign::FeatureAddSub::getClassTypeId());
+//        // If there is more than one selected or eligible object, show dialog and let user pick one
+//        if (features.size() > 1) {
+//            std::vector<PartDesignGui::FeaturePicker::FeatureStatus> status;
+//            for (unsigned i = 0; i < features.size(); i++)
+//                status.push_back(PartDesignGui::FeaturePicker::validFeature);
+//
+//            Gui::TaskView::TaskDialog *dlg = Gui::Control().activeDialog();
+//            PartDesignGui::TaskDlgFeaturePick *pickDlg = qobject_cast<PartDesignGui::TaskDlgFeaturePick *>(dlg);
+//            if (dlg && !pickDlg) {
+//                QMessageBox msgBox;
+//                msgBox.setText(QObject::tr("A dialog is already open in the task panel"));
+//                msgBox.setInformativeText(QObject::tr("Do you want to close this dialog?"));
+//                msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+//                msgBox.setDefaultButton(QMessageBox::Yes);
+//                int ret = msgBox.exec();
+//                if (ret == QMessageBox::Yes)
+//                    Gui::Control().closeDialog();
+//                else
+//                    return;
+//            }
+//
+//            if(dlg)
+//                Gui::Control().closeDialog();
+//
+//            Gui::Selection().clearSelection();
+//            Gui::Control().showDialog(new PartDesignGui::TaskDlgFeaturePick(features, status, accepter, worker));
+//        } else {
+//            QMessageBox::warning(Gui::getMainWindow(), QObject::tr("No valid features in this document"),
+//                QObject::tr("Please create a subtractive or additive feature first"));
+//            return;
+//        }
     }
     else {
         worker(features);

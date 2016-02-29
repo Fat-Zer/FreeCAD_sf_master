@@ -912,7 +912,8 @@ bool TaskDlgDatumParameters::accept()
             for(App::DocumentObject* obj : pcDatum->Support.getValues()) {
 
                 if(!pcActiveBody->hasFeature(obj)) {
-                    objs.push_back(PartDesignGui::TaskFeaturePick::makeCopy(obj, subs[index], dlg.radioIndependent->isChecked()));
+                    // TODO rewright after finishing FeaturePick (2015-12-09, Fat-Zer)
+                    // objs.push_back(PartDesignGui::TaskFeaturePick::makeCopy(obj, subs[index], dlg.radioIndependent->isChecked()));
                     copies.push_back(objs.back());
                     subs[index] = "";
                 }
