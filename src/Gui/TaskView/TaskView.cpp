@@ -598,6 +598,7 @@ void TaskView::updateWatcher(void)
     // deleted because otherwise Qt may forward the focus via focusNextPrevChild()
     // to the mdi area which may switch to another mdi view which is not an
     // acceptable behaviour.
+    // TODO combine copy-paste code with TaskView::removeWidget() (2016-02-29, Fat-Zer) 
     QWidget *fw = QApplication::focusWidget();
     if (!fw)
         this->setFocus();
