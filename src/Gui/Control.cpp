@@ -49,14 +49,16 @@ ControlSingleton* ControlSingleton::_pcSingleton = 0;
 static QPointer<Gui::TaskView::TaskView> _taskPanel = 0;
 
 ControlSingleton::ControlSingleton()
-  : ActiveDialog(0)
+  : ActiveDialog(0), syncDialogLoop(0)
 {
 
 }
 
 ControlSingleton::~ControlSingleton()
 {
-
+    if (syncDialogLoop) {
+        delete syncDialogLoop;
+    }
 }
 
 Gui::TaskView::TaskView* ControlSingleton::taskPanel() const
@@ -94,8 +96,10 @@ void ControlSingleton::showModelView()
         _taskPanel->raise();
 }
 
-void ControlSingleton::showDialog(Gui::TaskView::TaskDialog *dlg)
+int ControlSingleton::showDialog(Gui::TaskView::TaskDialog *dlg, bool sync)
 {
+    int rv = 0;
+
     // only one dialog at a time, print a warning instead of raising an assert
     if (ActiveDialog && ActiveDialog != dlg) {
         if (dlg) {
@@ -106,7 +110,7 @@ void ControlSingleton::showDialog(Gui::TaskView::TaskDialog *dlg)
         else {
             qWarning() << "ControlSingleton::showDialog: Task dialog is null";
         }
-        return;
+        return -1;
     }
     Gui::DockWnd::CombiView* pcCombiView = qobject_cast<Gui::DockWnd::CombiView*>
         (Gui::DockWindowManager::instance()->getDockWindow("Combo View"));
@@ -122,9 +126,9 @@ void ControlSingleton::showDialog(Gui::TaskView::TaskDialog *dlg)
         }
 
         if (ActiveDialog == dlg)
-            return; // dialog is already defined
+            return -1; // dialog is already defined
         ActiveDialog = dlg;
-        connect(dlg, SIGNAL(aboutToBeDestroyed()), this, SLOT(closedDialog()));
+        connect(dlg, SIGNAL(destroyed()), this, SLOT(closedDialog()));
     }
     // not all workbenches have the combo view enabled
     else if (!_taskPanel) {
@@ -146,7 +150,21 @@ void ControlSingleton::showDialog(Gui::TaskView::TaskDialog *dlg)
             dw->show();
             dw->raise();
         }
+
     }
+
+    // if sync is specified run the event loop and wait for dialog being finished
+    if (sync) {
+        syncDialogLoop = new QEventLoop();
+        connect(getTaskPanel (), SIGNAL(dialogFinished(int)), this, SLOT (finishSyncDialog(int)) );
+        rv = syncDialogLoop->exec ();
+        disconnect(getTaskPanel (), SIGNAL(dialogFinished(int)), this, SLOT (finishSyncDialog(int)) );
+
+        delete syncDialogLoop;
+        syncDialogLoop = nullptr;
+    }
+
+    return rv;
 }
 
 QTabWidget* ControlSingleton::tabPanel() const
@@ -204,6 +222,15 @@ void ControlSingleton::closeDialog()
         pcCombiView->closeDialog();
     else if (_taskPanel)
         _taskPanel->removeDialog();
+}
+
+void ControlSingleton::finishSyncDialog(int status)
+{
+    if (syncDialogLoop) {
+        syncDialogLoop->exit (status);
+    } else {
+        Base::Console().Error ( "No syncronous dialog is running\n" );
+    }
 }
 
 void ControlSingleton::closedDialog()

@@ -189,6 +189,18 @@ public:
     void clearActionStyle();
     void restoreActionStyle();
 
+    /// The status intended to be passed to dialogFinished () signal
+    enum DialogFinishStatus{
+        dialogAccepted = 0, ///< Dialog was accepted
+        dialogRejected      ///< Dialog was rejected
+    };
+
+Q_SIGNALS:
+    /**
+     * Getting emmited whenever a dialog getting accepted or rejected
+     * @param status is zero if DialogAccepted if the dialog was accepted and Dialog rejected othervice
+     */
+    void dialogFinished(int status);
 protected Q_SLOTS:
     void accept();
     void reject();

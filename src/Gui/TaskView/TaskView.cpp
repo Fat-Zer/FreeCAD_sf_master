@@ -570,13 +570,12 @@ void TaskView::removeDialog(void)
         ActiveCtrl = 0;
     }
 
-    TaskDialog* remove = NULL;
     if (ActiveDialog) {
         const std::vector<QWidget*> &cont = ActiveDialog->getDialogContent();
         for(std::vector<QWidget*>::const_iterator it=cont.begin();it!=cont.end();++it){
             taskPanel->removeWidget(*it);
         }
-        remove = ActiveDialog;
+        delete ActiveDialog;
         ActiveDialog = 0;
     }
 
@@ -584,11 +583,6 @@ void TaskView::removeDialog(void)
 
     // put the watcher back in control
     addTaskWatcher();
-    
-    if(remove) {
-        remove->emitDestructionSignal();
-        delete remove;
-    }
 }
 
 void TaskView::updateWatcher(void)
@@ -699,14 +693,18 @@ void TaskView::removeTaskWatcher(void)
 
 void TaskView::accept()
 {
-    if (ActiveDialog->accept())
+    if (ActiveDialog->accept()) {
+        Q_EMIT dialogFinished(dialogAccepted);
         removeDialog();
+    }
 }
 
 void TaskView::reject()
 {
-    if (ActiveDialog->reject())
+    if (ActiveDialog->reject()) {
+        Q_EMIT dialogFinished(dialogRejected);
         removeDialog();
+    }
 }
 
 void TaskView::helpRequested()

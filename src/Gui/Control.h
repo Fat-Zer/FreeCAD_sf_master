@@ -33,6 +33,7 @@
 #include <Gui/TaskView/TaskDialog.h>
 
 class QTabWidget;
+class QEventLoop;
 
 namespace App
 {
@@ -59,17 +60,28 @@ public:
     static ControlSingleton& instance(void);
     static void destruct (void);
 
-    /** @name dialog handling 
+    /** @name dialog handling
      *  These methods are used to control the TaskDialog stuff.
      */
     //@{
-    /// This method starts a task dialog in the task view
-    void showDialog(Gui::TaskView::TaskDialog *dlg);
+    /**
+     * This method starts a task dialog in the task view
+     *
+     * @param dlg  the dialog to start
+     * @param sync if true execute dialog synchronously and return to call place after it finished
+     * @returns zero on success (if dialog was successfully runned (and was accepted if sync is true)
+     *          and nonzero otherwice
+     *
+     * @note syncronous dialogs should be used with caution:
+     *   e.g. they shouldn't be used when there is an open command
+     */
+    int showDialog(Gui::TaskView::TaskDialog *dlg, bool sync=false);
+
     Gui::TaskView::TaskDialog* activeDialog() const;
     //void closeDialog();
     //@}
 
-    /** @name task view handling 
+    /** @name task view handling
      */
     //@{
     Gui::TaskView::TaskView* taskPanel() const;
@@ -87,17 +99,20 @@ public Q_SLOTS:
     void accept();
     void reject();
     void closeDialog();
-    /// raises the task view panel 
+    /// raises the task view panel
     void showTaskView();
 
 private Q_SLOTS:
     /// This get called by the TaskView when the Dialog is finished
     void closedDialog();
+    /// This is a helper for the showDialog(sync=true)
+    void finishSyncDialog (int status);
 
 private:
     Gui::TaskView::TaskView *getTaskPanel();
 
 private:
+    // TODO this seems doesn't used (may be delete?) (2015-12-22, Fat-Zer)
     struct status {
         std::bitset<32> StatusBits;
     } CurrentStatus;
@@ -105,7 +120,7 @@ private:
     std::stack<status> StatusStack;
 
     Gui::TaskView::TaskDialog *ActiveDialog;
- 
+    QEventLoop *syncDialogLoop;
 private:
     /// Construction
     ControlSingleton();

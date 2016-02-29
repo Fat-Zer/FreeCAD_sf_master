@@ -91,13 +91,6 @@ public:
     virtual bool reject();
     /// is called by the framework if the user press the help button 
     virtual void helpRequested();
-
-    void emitDestructionSignal() {
-        Q_EMIT aboutToBeDestroyed();
-    }
-    
-Q_SIGNALS:
-    void aboutToBeDestroyed();
     
 protected:
     /// List of TaskBoxes of that dialog
