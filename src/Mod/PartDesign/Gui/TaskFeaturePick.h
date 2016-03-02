@@ -29,6 +29,7 @@
 
 #include <Gui/TaskView/TaskView.h>
 #include <Gui/Selection.h>
+#include <Gui/Widgets.h>
 #include <Gui/TaskView/TaskDialog.h>
 #include <Gui/ViewProviderOrigin.h>
 #include <App/DocumentObject.h>
@@ -60,10 +61,10 @@ public:
         otherBody,        ///< Doesn't belongs to current body
         otherPart,        ///< Doesn't belongs to current part
         afterTip,         ///< The feature is located after the current Tip
+        invalidShape,     ///< Inappropriate shape for the task
         // BasePlane specific
         basePlane,        ///< Is a baseplane
         // Sketch specific
-        invalidShape,     ///< Inappropriate shape for the task
         noWire,           ///< The featuer (likely sketch) has no wire
 //        userSelected,     ///< The feature is preapprooved (ok)
         FEATURE_STATUS_MAX
@@ -73,7 +74,12 @@ public:
     /// A help type for store set of statuses
     typedef std::bitset<FEATURE_STATUS_MAX> StatusSet;
 
-    explicit FeaturePicker ( QObject * parent = 0 );
+    /**
+     * Constructor
+     * @param parent      a Qt parent of the object
+     * @param s_multiPick if true configure the picker to select multiple objects
+     */
+    explicit FeaturePicker ( bool s_multiPick = false, QObject * parent = 0 );
 
     /**
      * Set a status of a feature and adds it to the picker
@@ -110,6 +116,7 @@ public:
 
     /// @name Status manipulators
     ///@{
+
     /// Returns a string describing the given status
     static QString getFeatureStatusString ( FeatureStatus status );
 
@@ -187,18 +194,23 @@ public:
     }
 
     /// Set the features picked by the user
-    void setPickedFeatures (const std::list <App::DocumentObject *> & features) {
-        if (features != pickedFeatures) {
+    void setPickedFeatures (const std::vector <App::DocumentObject *> & features) {
+        if ( multiPick && !features.empty() ) {
+            setPickedFeature (features.front());
+        } else if (features != pickedFeatures) {
             pickedFeatures = features;
             Q_EMIT pickedFeaturesChanged ();
         }
     }
 
     /// Returns the set of picked features
-    const std::list <App::DocumentObject *>& getPickedFeatures () const {
+    const std::vector <App::DocumentObject *>& getPickedFeatures () const {
         return pickedFeatures;
     }
 
+    /// Returns whether multiple feature picking is enabled
+    bool isMultiPick ()
+    { return multiPick; }
 Q_SIGNALS:
     /// Emmited when visability for specific status changed
     void visabilityChanged (PartDesignGui::FeaturePicker::FeatureStatus status, bool state);
@@ -218,8 +230,9 @@ private:
 
     StatusSet visability;
 
-    std::list <App::DocumentObject *> pickedFeatures;
-//    std::set<QTreeWidget *> additionalTreeWidgets; ///< a set of additional tree widgets where our items may ocure
+    std::vector <App::DocumentObject *> pickedFeatures;
+
+    bool multiPick;
 };
 
 
@@ -246,6 +259,38 @@ private:
     /// Constructs a new tree widget item for the given feature
     QTreeWidgetItem * createTreeWidgetItem (App::DocumentObject *feat, const FeaturePicker::StatusSet &);
 
+private:
+    FeaturePicker *picker;
+
+    typedef boost::bimap < App::DocumentObject *, QTreeWidgetItem *> TreeWidgetItemMap;
+    TreeWidgetItemMap treeItems;
+};
+
+/**
+ * A widget to display the content of FeaturePicker with two pannels
+ */
+class FeaturePickTwoPanelWidget: public Gui::ActionSelector {
+    Q_OBJECT
+public:
+    FeaturePickTwoPanelWidget ( FeaturePicker *picker_s, QWidget *parent = 0 );
+
+protected Q_SLOTS:
+    void onWidgetSelectionChanged ();
+    void onPickedFeaturesChanged ();
+    void onFeatureStatusSet (App::DocumentObject *feat, PartDesignGui::FeaturePicker::StatusSet status);
+    void onVisabilityChanged ();
+
+private:
+    /// Constructs a new tree widget item for the given feature
+    QTreeWidgetItem * createTreeWidgetItem (App::DocumentObject *feat){
+        return createTreeWidgetItem ( feat, picker->getStatus ( feat ) );
+    }
+
+    /// Constructs a new tree widget item for the given feature
+    QTreeWidgetItem * createTreeWidgetItem (App::DocumentObject *feat, const FeaturePicker::StatusSet &);
+
+    /// Returns the features moved to selectedWidget mapped to DocumentObject*
+    inline std::vector <App::DocumentObject *> getSelectedFeatures ();
 private:
     FeaturePicker *picker;
 
@@ -320,9 +365,9 @@ public:
      * Checks wether there is a TaskDialog already running and creates and shows a new one
      * TaskDlgFeaturePick if not.
      *
-     * @returns true if the user accepts the dialog
+     * @returns zero if the user accepts the dialog and nonzero value othervice
      */
-    static bool safeExecute ( FeaturePicker *picker );
+    static int safeExecute ( FeaturePicker *picker );
 
 // TODO Rewright (2015-12-09, Fat-Zer)
 // protected:

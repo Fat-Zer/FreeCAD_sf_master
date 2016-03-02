@@ -60,6 +60,7 @@
 #include "TaskFeaturePick.h"
 #include "ReferenceSelection.h"
 #include "Utils.h"
+#include "ReferenceSelection.h"
 #include "WorkflowManager.h"
 
 // TODO Remove this header after fixing code so it won;t be needed here (2015-10-20, Fat-Zer)
@@ -446,8 +447,8 @@ void CmdPartDesignNewSketch::activated(int iMsg)
 
         std::vector<App::DocumentObject*> planes;
         PartDesignGui::FeaturePicker picker;
-//
-//        // Baseplanes are preaprooved
+
+        // Baseplanes are preaprooved
         if ( pcActiveBody ) {
             try {
                 for ( auto plane: pcActiveBody->getOrigin ()->planes () ) {
@@ -467,7 +468,7 @@ void CmdPartDesignNewSketch::activated(int iMsg)
 
         for (auto plane: datumPlanes) {
             PartDesignGui::FeaturePicker::StatusSet planeStatus;
-            planeStatus |= PartDesignGui::FeaturePicker::validFeature;
+            planeStatus [PartDesignGui::FeaturePicker::validFeature] = 1;
             // Check whether this plane belongs to the active body
             planeStatus |= PartDesignGui::FeaturePicker::bodyRelationStatus (plane, pcActiveBody);
             picker.setFeatureStatus (plane, planeStatus);
@@ -1286,74 +1287,60 @@ void prepareTransformed(Gui::Command* cmd, const std::string& which,
 {
     std::string FeatName = cmd->getUniqueObjectName(which.c_str());
 
-    auto accepter = [=](std::vector<App::DocumentObject*> features) -> bool{
-
-        if(features.empty())
-            return false;
-
-        return true;
-    };
-
-    auto worker = [=](std::vector<App::DocumentObject*> features) {
-        std::stringstream str;
-        str << "App.activeDocument()." << FeatName << ".Originals = [";
-        for (std::vector<App::DocumentObject*>::iterator it = features.begin(); it != features.end(); ++it){
-            str << "App.activeDocument()." << (*it)->getNameInDocument() << ",";
-        }
-        str << "]";
-
-        Gui::Command::openCommand((std::string("Make ") + which + " feature").c_str());
-        Gui::Command::doCommand(Gui::Command::Doc,"App.activeDocument().addObject(\"PartDesign::%s\",\"%s\")",which.c_str(), FeatName.c_str());
-        // FIXME: There seems to be kind of a race condition here, leading to sporadic errors like
-        // Exception (Thu Sep  6 11:52:01 2012): 'App.Document' object has no attribute 'Mirrored'
-        Gui::Command::updateActive(); // Helps to ensure that the object already exists when the next command comes up
-        Gui::Command::doCommand(Gui::Command::Doc, str.str().c_str());
-        // TODO Wjat that function supposed to do? (2015-08-05, Fat-Zer)
-        func(FeatName, features);
-    };
-
     // Get a valid original from the user
     // First check selections
-    std::vector<App::DocumentObject*> features = cmd->getSelection().getObjectsOfType(PartDesign::FeatureAddSub::getClassTypeId());
+    std::vector<App::DocumentObject*> features =
+        cmd->getSelection().getObjectsOfType(PartDesign::FeatureAddSub::getClassTypeId());
+
     // Next create a list of all eligible objects
-    if (features.size() == 0) {
-// TODO rewright after finishing task Picker Feature (2015-12-09, Fat-Zer)
-//        features = cmd->getDocument()->getObjectsOfType(PartDesign::FeatureAddSub::getClassTypeId());
-//        // If there is more than one selected or eligible object, show dialog and let user pick one
-//        if (features.size() > 1) {
-//            std::vector<PartDesignGui::FeaturePicker::FeatureStatus> status;
-//            for (unsigned i = 0; i < features.size(); i++)
-//                status.push_back(PartDesignGui::FeaturePicker::validFeature);
-//
-//            Gui::TaskView::TaskDialog *dlg = Gui::Control().activeDialog();
-//            PartDesignGui::TaskDlgFeaturePick *pickDlg = qobject_cast<PartDesignGui::TaskDlgFeaturePick *>(dlg);
-//            if (dlg && !pickDlg) {
-//                QMessageBox msgBox;
-//                msgBox.setText(QObject::tr("A dialog is already open in the task panel"));
-//                msgBox.setInformativeText(QObject::tr("Do you want to close this dialog?"));
-//                msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-//                msgBox.setDefaultButton(QMessageBox::Yes);
-//                int ret = msgBox.exec();
-//                if (ret == QMessageBox::Yes)
-//                    Gui::Control().closeDialog();
-//                else
-//                    return;
-//            }
-//
-//            if(dlg)
-//                Gui::Control().closeDialog();
-//
-//            Gui::Selection().clearSelection();
-//            Gui::Control().showDialog(new PartDesignGui::TaskDlgFeaturePick(features, status, accepter, worker));
-//        } else {
-//            QMessageBox::warning(Gui::getMainWindow(), QObject::tr("No valid features in this document"),
-//                QObject::tr("Please create a subtractive or additive feature first"));
-//            return;
-//        }
+    if (features.empty()) {
+        // TODO Allow features only from current body (2016-03-02, Fat-Zer)
+
+        features = cmd->getDocument()->getObjectsOfType(PartDesign::FeatureAddSub::getClassTypeId());
+        // If there is more than one selected or eligible object, show dialog and let user pick one
+        if ( features.empty () ) {
+            QMessageBox::warning(Gui::getMainWindow(), QObject::tr("No valid features in this document"),
+                QObject::tr("Please create a substractive or additive feature first"));
+            return;
+        } else if (features.size () != 1) {
+
+            PartDesignGui::FeaturePicker picker( /*multiPick=*/ true);
+
+            std::vector<PartDesignGui::FeaturePicker::FeatureStatus> status;
+            for (auto feat : features) {
+                PartDesignGui::FeaturePicker::StatusSet featStatus;
+                // Check whether this plane belongs to the active body
+                featStatus |= PartDesignGui::FeaturePicker::bodyRelationStatus (feat);
+                assert ( feat->isDerivedFrom ( PartDesign::FeatureAddSub::getClassTypeId () ) );
+                PartDesign::FeatureAddSub *addSub = static_cast<PartDesign::FeatureAddSub *> (feat);
+
+                if (addSub->AddSubShape.getValue().IsNull ()) {
+                    // AddSubShape must present for transform features
+                    featStatus.set ( PartDesignGui::FeaturePicker::invalidShape );
+                } else {
+                    featStatus.set ( PartDesignGui::FeaturePicker::validFeature );
+                }
+                // TODO may be checked for used (2016-03-02, Fat-Zer)
+                picker.setFeatureStatus ( feat, featStatus );
+            }
+
+            if ( PartDesignGui::TaskDlgFeaturePick::safeExecute (&picker) != 0 ) {
+                // Nothing selected
+                return;
+            }
+            features = picker.getPickedFeatures ();
+            assert ( !features.empty () );
+        }
     }
-    else {
-        worker(features);
-    }
+
+    Gui::Command::openCommand((std::string("Make ") + which + " feature").c_str());
+    Gui::Command::doCommand(Gui::Command::Doc,"App.activeDocument().addObject(\"PartDesign::%s\",\"%s\")",
+            which.c_str(), FeatName.c_str());
+    Gui::Command::doCommand ( Gui::Command::Doc, "App.activeDocument().%s.Originals = %s",
+            FeatName.c_str (), PartDesignGui::buildLinkListPythonStr (features).c_str () );
+
+    // TODO Remove this function in favor of straight execute (2016-03-01, Fat-Zer)
+    func(FeatName, features);
 }
 
 void finishTransformed(Gui::Command* cmd, std::string& FeatName)

@@ -67,8 +67,8 @@ using namespace PartDesignGui;
  *********************************************************************/
 
 
-FeaturePicker::FeaturePicker ( QObject * parent )
-    : QObject (parent)
+FeaturePicker::FeaturePicker ( bool s_multiPick, QObject * parent )
+    : QObject (parent), multiPick (s_multiPick)
 {
     visability [ validFeature ]    = true;
     // Due to external features are additionally constrained enable enable them by default
@@ -256,11 +256,18 @@ FeaturePickSingleSelectWidget::FeaturePickSingleSelectWidget (
         FeaturePicker *picker_s, QWidget *parent )
 : QTreeWidget (parent), picker (picker_s)
 {
+    assert (picker);
+
     setHeaderHidden ( true );
     sortByColumn ( 0 );
     setSortingEnabled ( 0 );
-    setSelectionMode ( QAbstractItemView::SingleSelection );
     setSelectionBehavior ( QAbstractItemView::SelectRows );
+    setSelectionMode ( QAbstractItemView::SingleSelection );
+
+    // TODO May be make it possible to select multiple objects through this widget (?) (2016-03-01, Fat-Zer)
+    if (picker->isMultiPick ()) {
+        Base::Console().Error ( "FeaturePickSingleSelectWidget shouldn't be used for multiple selection\n" );
+    }
 
     for ( auto featStat : picker->getFeaturesStatusMap () ) {
         createTreeWidgetItem (featStat.first, featStat.second);
@@ -273,7 +280,7 @@ FeaturePickSingleSelectWidget::FeaturePickSingleSelectWidget (
     connect ( picker, SIGNAL ( featureStatusSet ( App::DocumentObject *,
                                                   PartDesignGui::FeaturePicker::StatusSet ) ),
               this, SLOT ( onFeatureStatusSet ( App::DocumentObject *,
-                                                  PartDesignGui::FeaturePicker::StatusSet ) ) );
+                                                PartDesignGui::FeaturePicker::StatusSet ) ) );
 }
 
 
@@ -373,6 +380,158 @@ void FeaturePickSingleSelectWidget::onVisabilityChanged () {
 
 
 /**********************************************************************
+*                     FeaturePickTwoPanelWidget                      *
+**********************************************************************/
+
+FeaturePickTwoPanelWidget::FeaturePickTwoPanelWidget (
+        FeaturePicker *picker_s, QWidget *parent )
+: Gui::ActionSelector (parent), picker (picker_s)
+{
+    assert (picker);
+
+    if (!picker->isMultiPick ()) {
+        Base::Console().Error ( "FeaturePickTwoPlaneWidget couldn't be used for single selection\n" );
+    }
+
+    for ( auto featStat : picker->getFeaturesStatusMap () ) {
+        createTreeWidgetItem (featStat.first, featStat.second);
+    }
+
+    // Move picked items to selected widget
+    for ( auto feat : picker->getPickedFeatures () ) {
+        auto featIt = treeItems.left.find (feat);
+        assert (featIt != treeItems.left.end ());
+        selectItem ( featIt->second );
+        featIt->second->setHidden (false);
+    }
+
+    QAbstractItemModel *selectedModel = selectedTreeWidget ()->model ();
+
+    connect ( selectedModel, SIGNAL ( rowsInserted (const QModelIndex &, int, int) ),
+              this, SLOT (onWidgetSelectionChanged () ) );
+    connect ( selectedModel, SIGNAL ( rowsRemoved (const QModelIndex &, int, int) ),
+              this, SLOT (onWidgetSelectionChanged () ) );
+    connect ( selectedModel, SIGNAL ( rowsMoved ( const QModelIndex &, int, int,
+                                                  const QModelIndex &, int, int) ),
+              this, SLOT (onWidgetSelectionChanged () ) );
+
+    connect ( picker, SIGNAL ( pickedFeaturesChanged () ), this, SLOT (onPickedFeaturesChanged () ) );
+    connect ( picker, SIGNAL ( visabilityChanged ( PartDesignGui::FeaturePicker::FeatureStatus, bool ) ),
+              this, SLOT (onVisabilityChanged () ) );
+    connect ( picker, SIGNAL ( featureStatusSet ( App::DocumentObject *,
+                                                  PartDesignGui::FeaturePicker::StatusSet ) ),
+              this, SLOT ( onFeatureStatusSet ( App::DocumentObject *,
+                                                PartDesignGui::FeaturePicker::StatusSet ) ) );
+}
+
+inline std::vector <App::DocumentObject *> FeaturePickTwoPanelWidget::getSelectedFeatures () {
+    std::vector <App::DocumentObject *> rv;
+
+    // Get all items in the selected widget
+    rv.reserve (selectedTreeWidget()->topLevelItemCount());
+    for (int i=0; i<selectedTreeWidget()->topLevelItemCount(); i++) {
+        QTreeWidgetItem *item = selectedTreeWidget()->topLevelItem( i );
+
+        auto itemIt = treeItems.right.find (item);
+        if (itemIt != treeItems.right.end ()) {
+            rv.push_back (itemIt->second);
+        } else {
+            Base::Console().Error ( "FeaturePicker select widget holds unknown QTreeWidgetItem\n" );
+        }
+    }
+
+    return rv;
+}
+
+void  FeaturePickTwoPanelWidget::onWidgetSelectionChanged () {
+    picker->setPickedFeatures (getSelectedFeatures ());
+    onVisabilityChanged (); //< we don't know what widgets was moved or whatever so update visabilities for all
+}
+
+void FeaturePickTwoPanelWidget::onPickedFeaturesChanged () {
+    // select the picked widget if it differs from currently selected
+    auto sel = getSelectedFeatures ();
+
+    const auto & picked = picker->getPickedFeatures ();
+
+    if (sel != picked) {
+        // block all signals from the model
+        bool modelBlocked = selectedTreeWidget ()->model ()->blockSignals ( true );
+
+        // remove all items from selectedTreeWidget
+        while ( selectedTreeWidget ()->topLevelItemCount () ) {
+            unselectItem ( 0 );
+        }
+
+        // And select the new set of features again
+        for ( auto feat : picked ) {
+            auto featIt = treeItems.left.find (feat);
+            assert (featIt != treeItems.left.end ());
+            selectItem ( featIt->second );
+            featIt->second->setHidden (false);
+        }
+
+        selectedTreeWidget ()->model ()->blockSignals ( modelBlocked );
+    }
+}
+
+void FeaturePickTwoPanelWidget::onFeatureStatusSet (
+        App::DocumentObject *feat, PartDesignGui::FeaturePicker::StatusSet status)
+{
+    auto featIt = treeItems.left.find (feat);
+    if (featIt == treeItems.left.end() ) {
+        createTreeWidgetItem (feat);
+    } else if (featIt->second->treeWidget () == availableTreeWidget() ) {
+        featIt->second->setHidden ( !picker->isVisible (status) );
+    }
+}
+
+QTreeWidgetItem *FeaturePickTwoPanelWidget::createTreeWidgetItem (
+        App::DocumentObject * feat,
+        const FeaturePicker::StatusSet & status )
+{
+    Gui::ViewProvider *vp = Gui::Application::Instance->getViewProvider (feat);
+    assert (vp);
+
+    QTreeWidgetItem *item =
+        new QTreeWidgetItem ( QStringList ( QString::fromUtf8 ( feat->Label.getValue () ) ) );
+    assert (item);
+    item->setIcon ( 0, vp->getIcon () );
+
+    // construct the tooltip
+    QString toolTip;
+
+    for (unsigned i=FeaturePicker::validFeature+1; i<status.size (); ++i) { //< Note skipping the validFeature
+        if (status[i]) {
+            toolTip.append ( FeaturePicker::getFeatureStatusString ( (FeaturePicker::FeatureStatus) i) ).
+                append ( QLatin1String ("\n") );
+        }
+    }
+    if (!toolTip.isEmpty () ) {
+        item->setToolTip ( 0, toolTip );
+    }
+
+    treeItems.insert ( TreeWidgetItemMap::value_type ( feat, item ) );
+    availableTreeWidget()->addTopLevelItem (item);
+
+    // Hide the item if it shouldn't be visible
+    item->setHidden (!picker->isVisible (status));
+
+    return item;
+}
+
+void FeaturePickTwoPanelWidget::onVisabilityChanged () {
+    for (auto featTreeItem : treeItems.left ) {
+        if (featTreeItem.second->treeWidget () == availableTreeWidget()) {
+            featTreeItem.second->setHidden ( !picker->isVisible (featTreeItem.first) );
+        } else {
+            featTreeItem.second->setHidden ( false );
+        }
+    }
+}
+
+
+/**********************************************************************
  *                      FeaturePickControlWidget                      *
  **********************************************************************/
 
@@ -380,7 +539,7 @@ FeaturePickControlWidget::FeaturePickControlWidget ( FeaturePicker *picker_s, QW
     : QWidget (parent), picker ( picker_s )
 {
     assert ( picker );
-    QBoxLayout * layout = new QVBoxLayout;
+    QBoxLayout * layout = new QVBoxLayout (this);
     this->setLayout ( layout );
 
     auto existingStatuses = picker->getFeatureStatusMask ( );
@@ -395,7 +554,7 @@ FeaturePickControlWidget::FeaturePickControlWidget ( FeaturePicker *picker_s, QW
         btn->setCheckable (true);
         btn->setChecked ( this->picker->isVisible (status) );
         btn->setDisabled ( !existingStatuses[status] );
-        layout->addWidget (btn);
+        this->layout ()->addWidget (btn);
         this->controlButtons.insert ( ButtonsBimap::value_type ( status , btn ) );
         connect (btn, SIGNAL (clicked (bool) ), this, SLOT( onStateButtonClicked (bool) ) );
 
@@ -490,12 +649,17 @@ TaskFeaturePick::TaskFeaturePick ( FeaturePicker *picker, QWidget *parent )
     QWidget *proxy = new QWidget(this);
     this->addWidget(proxy);
 
-    proxy->setLayout ( new QHBoxLayout );
+    proxy->setLayout ( new QHBoxLayout (proxy) );
 
     proxy->layout ()->addWidget (new FeaturePickControlWidget (picker, proxy));
 
-    FeaturePickSingleSelectWidget *treeWidget = new FeaturePickSingleSelectWidget (picker, proxy);
-    proxy->layout ()->addWidget (treeWidget );
+    if ( picker->isMultiPick () ) {
+        FeaturePickTwoPanelWidget *pickWgt = new FeaturePickTwoPanelWidget (picker, proxy);
+        proxy->layout ()->addWidget (pickWgt );
+    } else {
+        FeaturePickSingleSelectWidget *treeWidget = new FeaturePickSingleSelectWidget (picker, proxy);
+        proxy->layout ()->addWidget (treeWidget );
+    }
 }
 
 /*********************************************************************
@@ -508,16 +672,16 @@ TaskDlgFeaturePick::TaskDlgFeaturePick ( FeaturePicker * picker )
     Content.push_back ( new TaskFeaturePick ( picker) );
 }
 
-bool TaskDlgFeaturePick::safeExecute ( FeaturePicker * picker ) {
+int TaskDlgFeaturePick::safeExecute ( FeaturePicker * picker ) {
 
     Gui::TaskView::TaskDialog *dlg = Gui::Control().activeDialog();
     if (dlg) {
-        if ( qobject_cast<PartDesignGui::TaskDlgFeaturePick *>(dlg) || dlg->canClose()  ) {
+        if ( qobject_cast<PartDesignGui::TaskDlgFeaturePick *>(dlg) || dlg->canClose() ) {
             // If we have another picker dialog we may safely close it.
             // And ask the user if it is some other dialog.
             Gui::Control().closeDialog();
         } else {
-            return false;
+            return -1;
         }
     }
 
