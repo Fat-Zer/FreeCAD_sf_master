@@ -575,7 +575,7 @@ void TaskView::removeDialog(void)
         for(std::vector<QWidget*>::const_iterator it=cont.begin();it!=cont.end();++it){
             taskPanel->removeWidget(*it);
         }
-        delete ActiveDialog;
+        ActiveDialog->deleteLater(); //< deleteLater due to it may be called during accept() of the dialog
         ActiveDialog = 0;
     }
 
