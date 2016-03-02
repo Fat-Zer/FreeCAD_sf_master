@@ -225,6 +225,45 @@ QString ActionSelector::availableLabel() const
     return labelAvailable->text();
 }
 
+void ActionSelector::selectItem (int index) {
+    if (index<0 || index >= selectedWidget->topLevelItemCount () ) {
+        return;
+    }
+    moveTreeWidgetItem (selectedWidget, availableWidget, index);
+}
+
+void ActionSelector::selectItem (QTreeWidgetItem *item) {
+    if (item->treeWidget () != selectedWidget ) {
+        return;
+    }
+    moveTreeWidgetItem (selectedWidget, item);
+}
+
+void ActionSelector::unselectItem (int index) {
+    if (index<0 || index >= availableWidget->topLevelItemCount () ) {
+        return;
+    }
+    moveTreeWidgetItem (availableWidget, selectedWidget, index);
+}
+
+void ActionSelector::unselectItem (QTreeWidgetItem *item) {
+    if (item->treeWidget () != availableWidget ) {
+        return;
+    }
+    moveTreeWidgetItem (availableWidget, item);
+}
+
+inline void ActionSelector::moveTreeWidgetItem (QTreeWidget *to, QTreeWidgetItem *item) {
+    QTreeWidget *from = item->treeWidget();
+    moveTreeWidgetItem ( to, from, from->indexOfTopLevelItem (item) );
+}
+
+inline void ActionSelector::moveTreeWidgetItem (QTreeWidget *to, QTreeWidget *from, int fromIndex) {
+    QTreeWidgetItem *item = from->takeTopLevelItem(fromIndex);
+    assert (item);
+    to->addTopLevelItem(item);
+    to->setCurrentItem(item);
+}
 
 void ActionSelector::retranslateUi()
 {
@@ -305,11 +344,7 @@ void ActionSelector::on_addButton_clicked()
 {
     QTreeWidgetItem* item = availableWidget->currentItem();
     if (item) {
-        int index = availableWidget->indexOfTopLevelItem(item);
-        item = availableWidget->takeTopLevelItem(index);
-        availableWidget->setCurrentItem(0);
-        selectedWidget->addTopLevelItem(item);
-        selectedWidget->setCurrentItem(item);
+        moveTreeWidgetItem (selectedWidget, item);
     }
 }
 
@@ -317,11 +352,7 @@ void ActionSelector::on_removeButton_clicked()
 {
     QTreeWidgetItem* item = selectedWidget->currentItem();
     if (item) {
-        int index = selectedWidget->indexOfTopLevelItem(item);
-        item = selectedWidget->takeTopLevelItem(index);
-        selectedWidget->setCurrentItem(0);
-        availableWidget->addTopLevelItem(item);
-        availableWidget->setCurrentItem(item);
+        moveTreeWidgetItem (availableWidget, item);
     }
 }
 

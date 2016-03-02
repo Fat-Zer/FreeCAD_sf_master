@@ -82,11 +82,22 @@ public:
     void setAvailableLabel(const QString&);
     QString availableLabel() const;
 
+    /// Moves the item with given index in avaliableTreeWidget to selectedTreeWidget
+    void selectItem ( int index );
+    /// Moves the given item from avalibleTreeWidget to selectedTreeWidget
+    void selectItem ( QTreeWidgetItem *item );
+    /// Moves the item with given index in selectedTreeWidget to avalibleTreeWidget
+    void unselectItem ( int index );
+    /// Moves the given item from selectedTreeWidget to avalibleTreeWidget
+    void unselectItem ( QTreeWidgetItem *item );
+
 private:
     void keyPressEvent(QKeyEvent *);
     void changeEvent(QEvent*);
     void retranslateUi();
     void setButtonsEnabled();
+    static inline void moveTreeWidgetItem (QTreeWidget *to, QTreeWidget *from, int fromIndex);
+    static inline void moveTreeWidgetItem (QTreeWidget *to, QTreeWidgetItem *item);
 
 private Q_SLOTS:
     void on_addButton_clicked();
