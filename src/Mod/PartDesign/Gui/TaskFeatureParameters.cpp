@@ -82,13 +82,19 @@ bool TaskDlgFeatureParameters::accept() {
         // Iterate over parameter dialogs and apply all parameters from them
         for ( QWidget *wgt : Content ) {
             TaskFeatureParameters *param = qobject_cast<TaskFeatureParameters *> (wgt);
-            param->saveHistory ();
-            param->apply ();
+            if (param) {
+                param->saveHistory ();
+                param->apply ();
+            }
         }
         // Make sure the feature is what we are expecting
         // Should be fine but you never know...
         if ( !feature->getTypeId().isDerivedFrom(PartDesign::Feature::getClassTypeId()) ) {
-            throw Base::Exception("Bad object processed in the feature dialog.");
+            QString err = QObject::tr ("Bad object %1(%2) processed in the feature dialog %3")
+                        .arg( QString::fromLatin1 (feature->getNameInDocument()) )
+                        .arg( QString::fromLatin1 (feature->Base::Persistence::getClassTypeId().getName()) )
+                        .arg( QString::fromLatin1 (this->metaObject()->className()) );
+            throw Base::Exception ( err.toUtf8 ());
         }
 
         App::DocumentObject* previous = static_cast<PartDesign::Feature*>(feature)->getBaseObject(/* silent = */ true );
