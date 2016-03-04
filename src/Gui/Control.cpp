@@ -128,10 +128,11 @@ int ControlSingleton::showDialog(Gui::TaskView::TaskDialog *dlg, bool sync)
         if (ActiveDialog == dlg)
             return -1; // dialog is already defined
         ActiveDialog = dlg;
-        connect(dlg, SIGNAL(destroyed()), this, SLOT(closedDialog()));
+        connect ( pcCombiView->getTaskPanel (), SIGNAL(dialogFinished(int)), this, SLOT(closedDialog()) );
     }
     // not all workbenches have the combo view enabled
     else if (!_taskPanel) {
+        // TODO Check if this legacy code works (2016-03-04, Fat-Zer)
         QDockWidget* dw = new QDockWidget();
         dw->setWindowTitle(tr("Task panel"));
         dw->setFeatures(QDockWidget::DockWidgetMovable);

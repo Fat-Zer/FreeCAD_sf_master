@@ -198,7 +198,7 @@ public:
 Q_SIGNALS:
     /**
      * Getting emmited whenever a dialog getting accepted or rejected
-     * @param status is zero if DialogAccepted if the dialog was accepted and Dialog rejected othervice
+     * @param status is zero or DialogAccepted if the dialog was accepted and Dialog rejected othervice
      */
     void dialogFinished(int status);
 protected Q_SLOTS:
