@@ -151,16 +151,18 @@ int ControlSingleton::showDialog(Gui::TaskView::TaskDialog *dlg, bool sync)
             dw->show();
             dw->raise();
         }
-
     }
 
     // if sync is specified run the event loop and wait for dialog being finished
     if (sync) {
         syncDialogLoop = new QEventLoop();
+        // We cannot rely on event loop return code due to QEventDialog::exit () may be called 
+        // from QCoreApplication::exit (); so introduce yet another variable
+        syncDialogRC = -1;
         connect(getTaskPanel (), SIGNAL(dialogFinished(int)), this, SLOT (finishSyncDialog(int)) );
-        rv = syncDialogLoop->exec ();
+        syncDialogLoop->exec ();
+        rv = syncDialogRC;
         disconnect(getTaskPanel (), SIGNAL(dialogFinished(int)), this, SLOT (finishSyncDialog(int)) );
-
         delete syncDialogLoop;
         syncDialogLoop = nullptr;
     }
@@ -228,7 +230,8 @@ void ControlSingleton::closeDialog()
 void ControlSingleton::finishSyncDialog(int status)
 {
     if (syncDialogLoop) {
-        syncDialogLoop->exit (status);
+        syncDialogRC = status;
+        syncDialogLoop->exit ();
     } else {
         Base::Console().Error ( "No syncronous dialog is running\n" );
     }

@@ -120,7 +120,9 @@ private:
     std::stack<status> StatusStack;
 
     Gui::TaskView::TaskDialog *ActiveDialog;
+
     QEventLoop *syncDialogLoop;
+    int syncDialogRC;
 private:
     /// Construction
     ControlSingleton();
