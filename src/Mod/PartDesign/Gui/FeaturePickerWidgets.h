@@ -48,27 +48,63 @@ class AbstractFeaturePickerWidget: public QWidget {
     Q_OBJECT
 public:
     AbstractFeaturePickerWidget ( FeaturePicker *picker_s, QWidget *parent = 0 );
-    virtual ~AbstractFeaturePickerWidget ( );
+    virtual ~AbstractFeaturePickerWidget () = 0;
 
     /// Returns the list of features selected by the widget
     virtual std::vector <App::DocumentObject *> getSelectedFeatures () = 0;
 
+    /**
+     * If any bit in a feature's status is not set in the visability set when the feature
+     * would be hidden in the tree view.
+     * @return true if features with given status are set to be displayed
+     */
+    bool isVisible (FeaturePicker::FeatureStatus status) const {
+        return visability[status];
+    }
+
+    /**
+     * If any bit in a feature's status is not set in the visability set when the feature
+     * would be hidden in the tree view.
+     * @return true if features with given status set are ment to be displayed
+     */
+    bool isVisible (FeaturePicker::StatusSet status) const {
+        return ( status & ~visability ).none ();
+    }
+
+    /// Returns a picker associated with the widger
+    FeaturePicker * getPicker () { return picker; }
+
+    /// Returns a current visability settings of features
+    const FeaturePicker::StatusSet & getVisability () { return visability; }
+
 Q_SIGNALS:
     /// The signal should be emitted by derived class when feature selection for picker is changed
     void selectionChanged ();
+
+    /// Emmited when visability for specific status changed
+    void visabilityChanged (PartDesignGui::FeaturePicker::FeatureStatus status, bool state);
 
 public Q_SLOTS:
     /// Update the associated FeaturePicker according to changes inside widget
     virtual void updatePickedFeatures ();
 
     /// Update the widget according to changes in featurePicker
-    virtual void updateUi() = 0;
+    virtual void updateUi();
+
+private Q_SLOTS:
+    /// A callback on a button getting clicked
+    void onStateButtonClicked ( bool state );
 
 protected:
     /// Sets up the user interface widget for derived classes
     void setupContent (QWidget *wgt);
-protected:
+
+private:
     FeaturePicker *picker;
+    FeaturePicker::StatusSet visability;
+
+    typedef boost::bimap< FeaturePicker::FeatureStatus, QToolButton *> ButtonsBimap;
+    ButtonsBimap controlButtons;
 };
 
 
@@ -109,7 +145,7 @@ public Q_SLOTS:
 private:
     /// Constructs a new tree widget item for the given feature
     QTreeWidgetItem * createTreeWidgetItem (App::DocumentObject *feat) {
-        return createTreeWidgetItem ( feat, picker->getStatus ( feat ) );
+        return createTreeWidgetItem ( feat, getPicker ()->getStatus ( feat ) );
     }
 
     /// Constructs a new tree widget item for the given feature
@@ -138,7 +174,7 @@ public Q_SLOTS:
 private:
     /// Constructs a new tree widget item for the given feature
     QTreeWidgetItem * createTreeWidgetItem (App::DocumentObject *feat) {
-        return createTreeWidgetItem ( feat, picker->getStatus ( feat ) );
+        return createTreeWidgetItem ( feat, getPicker ()->getStatus ( feat ) );
     }
 
     /// Constructs a new tree widget item for the given feature
@@ -147,29 +183,6 @@ private:
 
 private:
     Gui::ActionSelector *actionSelector;
-};
-
-
-/**
- * A reusable widget to control the FeaturePicker hide/show settings
- */
-class FeaturePickerControlWidget: public QWidget {
-    Q_OBJECT
-public:
-     FeaturePickerControlWidget ( FeaturePicker *picker_s, QWidget *parent = 0 );
-protected Q_SLOTS:
-    /// A callback on status getting changed in the FeaturePicker
-    void onVisabilityChanged ( PartDesignGui::FeaturePicker::FeatureStatus status, bool state );
-    /// A callback on a button getting clicked
-    void onStateButtonClicked ( bool state );
-    /// Adjust button visability on feature getting added to the picker
-    void onFeatureStatusSet ( );
-
-private:
-    FeaturePicker *picker;
-
-    typedef boost::bimap< FeaturePicker::FeatureStatus, QToolButton *> ButtonsBimap;
-    ButtonsBimap controlButtons;
 };
 
 } /* PartDesignGui */

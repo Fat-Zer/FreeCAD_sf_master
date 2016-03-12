@@ -143,30 +143,6 @@ public:
     }
     ///@}
 
-    /**
-     * If any bit in a feature's status is not set in the visability set when the feature
-     * would be hidden in the tree view.
-     * @return true if features with given status are set to be displayed
-     */
-    bool isVisible (FeaturePicker::FeatureStatus status) const {
-        return visability[status];
-    }
-
-    /**
-     * If any bit in a feature's status is not set in the visability set when the feature
-     * would be hidden in the tree view.
-     * @return true if features with given status set are ment to be displayed
-     */
-    bool isVisible (FeaturePicker::StatusSet status) const {
-        return ( status & ~visability ).none ();
-    }
-
-    /// Retruns true if given feature should be visible
-    bool isVisible (App::DocumentObject *feat) const;
-
-    /// Sets the visability of features with the given status
-    void setVisability (FeaturePicker::FeatureStatus status, bool state);
-
     /// Set a single features picked by the user
     void setPickedFeature (App::DocumentObject * feature) {
         assert (feature);
@@ -201,9 +177,6 @@ public:
     bool isMultiPick ()
     { return multiPick; }
 Q_SIGNALS:
-    /// Emmited when visability for specific status changed
-    void visabilityChanged (PartDesignGui::FeaturePicker::FeatureStatus status, bool state);
-
     /// Emmited after a feature status getting set
     void featureStatusSet (App::DocumentObject *, PartDesignGui::FeaturePicker::StatusSet);
 
@@ -216,8 +189,6 @@ private:
 
 private:
     std::map<App::DocumentObject *, StatusSet> statusMap;
-
-    StatusSet visability;
 
     std::vector <App::DocumentObject *> pickedFeatures;
 

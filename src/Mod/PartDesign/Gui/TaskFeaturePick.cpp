@@ -57,20 +57,13 @@ TaskFeaturePick::TaskFeaturePick ( FeaturePicker *picker, QWidget *parent )
                 QObject::tr("Select feature"), true, parent)
 {
     // We need a separate container widget to add all controls to
-    QWidget *proxy = new QWidget(this);
-    this->addWidget(proxy);
-
-    proxy->setLayout ( new QHBoxLayout (proxy) );
-
-    proxy->layout ()->addWidget (new FeaturePickerControlWidget (picker, proxy));
-
+    AbstractFeaturePickerWidget *pickWgt;
     if ( picker->isMultiPick () ) {
-        FeaturePickerDoublePanelWidget *pickWgt = new FeaturePickerDoublePanelWidget (picker, proxy);
-        proxy->layout ()->addWidget (pickWgt );
+        pickWgt = new FeaturePickerDoublePanelWidget (picker, this);
     } else {
-        FeaturePickerSinglePanelWidget *treeWidget = new FeaturePickerSinglePanelWidget (picker, proxy);
-        proxy->layout ()->addWidget (treeWidget );
+        pickWgt = new FeaturePickerSinglePanelWidget (picker, this);
     }
+    this->addWidget(pickWgt);
 }
 
 /*********************************************************************

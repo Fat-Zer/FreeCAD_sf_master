@@ -44,13 +44,7 @@ using namespace PartDesignGui;
 
 FeaturePicker::FeaturePicker ( bool s_multiPick, QObject * parent )
     : QObject (parent), multiPick (s_multiPick)
-{
-    visability [ validFeature ]    = true;
-    // Due to external features are additionally constrained enable enable them by default
-    visability [ isExternal ]      = true;
-    visability [ basePlane    ]    = true;
-//    visability [ userSelected ]    = true;
-}
+{ }
 
 void FeaturePicker::setFeatureStatus( App::DocumentObject *obj, StatusSet status ) {
 
@@ -208,18 +202,6 @@ std::set < App::DocumentObject * > FeaturePicker::getFeaturesWithExactStatus (
         FeaturePicker::StatusSet status) const
 {
     return getFeaturesFilteredByStatus ([status] (StatusSet s) -> bool { return (s ^ status).none (); } );
-}
-
-void FeaturePicker::setVisability (FeaturePicker::FeatureStatus status, bool state) {
-    if (visability [status] != state ) {
-        visability.set ( status, state );
-        Q_EMIT visabilityChanged (status, state);
-    }
-}
-
-/// Retruns true if given feature should be visible
-bool FeaturePicker::isVisible (App::DocumentObject *feat) const {
-    return isVisible ( getStatus (feat) );
 }
 
 #include "moc_FeaturePicker.cpp"

@@ -53,17 +53,61 @@ AbstractFeaturePickerWidget::AbstractFeaturePickerWidget (
 {
     assert (picker);
 
+    visability [ FeaturePicker::validFeature ]    = true;
+    // Due to external features are additionally constrained, enable them by default
+    visability [ FeaturePicker::isExternal   ]    = true;
+    visability [ FeaturePicker::basePlane    ]    = true;
+//    visability [ userSelected ]    = true;
+
+    QBoxLayout *mainLayout = new QHBoxLayout (this);
+
+    QBoxLayout * pbLayout = new QVBoxLayout;
+
+    auto existingStatuses = picker->getFeatureStatusMask ( );
+
+    // A commone code for adding a toolButton
+    auto addToolButton = [this, pbLayout, existingStatuses] (
+            FeaturePicker::FeatureStatus status, const char * icon, const QString & toolTip ) -> QToolButton *
+    {
+        QToolButton *btn = new QToolButton (this);
+
+        btn->setIcon (Gui::BitmapFactory().pixmap(icon));
+        btn->setToolTip (toolTip);
+        btn->setCheckable (true);
+        btn->setChecked ( this->isVisible (status) );
+        btn->setDisabled ( !existingStatuses[status] );
+        pbLayout->addWidget (btn);
+        this->controlButtons.insert ( ButtonsBimap::value_type ( status , btn ) );
+        connect (btn, SIGNAL (clicked (bool) ), this, SLOT( onStateButtonClicked (bool) ) );
+
+        return btn;
+    };
+
+    // TODO all icons here are temporary and should be replaced later (2015-12-19, Fat-Zer)
+    addToolButton (FeaturePicker::isUsed, "PartDesign_Pad", tr ("Show used features") );
+
+    addToolButton (FeaturePicker::otherBody, "PartDesign_Body_Tree",
+            tr ("Show features which doesn't belong to current body") );
+    addToolButton (FeaturePicker::otherPart, "PartFeature",
+            tr ("Show features which doesn't belong to current part") );
+    addToolButton (FeaturePicker::afterTip, "PartDesign_MoveTip",
+            tr ("Show features located in current body after the tip") );
+
+    pbLayout->addStretch ();
+
+    mainLayout->addLayout (pbLayout);
+
+    // TODO Save/load last visability states (2016-03-09, Fat-Zer)
     connect ( this, SIGNAL ( selectionChanged () ), this, SLOT ( updatePickedFeatures () ) );
     connect ( picker, SIGNAL ( pickedFeaturesChanged () ), this, SLOT (updateUi () ) );
-    connect ( picker, SIGNAL ( visabilityChanged ( PartDesignGui::FeaturePicker::FeatureStatus, bool ) ),
-              this, SLOT ( updateUi () ) );
     connect ( picker, SIGNAL ( featureStatusSet ( App::DocumentObject *,
                                                   PartDesignGui::FeaturePicker::StatusSet ) ),
               this, SLOT ( updateUi () ) );
 }
 
-AbstractFeaturePickerWidget::~AbstractFeaturePickerWidget ()
-{ }
+AbstractFeaturePickerWidget::~AbstractFeaturePickerWidget () {
+
+}
 
 void  AbstractFeaturePickerWidget::updatePickedFeatures () {
     picker->setPickedFeatures (getSelectedFeatures ());
@@ -72,14 +116,43 @@ void  AbstractFeaturePickerWidget::updatePickedFeatures () {
 }
 
 void AbstractFeaturePickerWidget::setupContent (QWidget *cont) {
-    QBoxLayout *layout= new QHBoxLayout (this);
-    setLayout (layout);
+    QBoxLayout *layout = qobject_cast <QBoxLayout *> ( this->layout () );
+    assert (layout);
     layout->addWidget (cont);
 }
 
+void AbstractFeaturePickerWidget::updateUi () {
+    auto existingStatuses = picker->getFeatureStatusMask ( );
+
+    for ( auto btnStat: controlButtons.left ) {
+        // Disable the button features for which statuses are not present in the picker
+        btnStat.second->setDisabled ( !existingStatuses[btnStat.first] );
+        // update the checked status of buttons
+        btnStat.second->setChecked ( visability[btnStat.first] );
+    }
+}
+
+void AbstractFeaturePickerWidget::onStateButtonClicked ( bool state ) {
+    QToolButton *btn = qobject_cast <QToolButton *> (sender ());
+    if ( !btn ) {
+# ifdef FC_DEBUG
+        Base::Console().Error( "AbstractFeaturePickerWidget::onStateButtonClicked bad signal sender'\n");
+# endif
+        return;
+    }
+
+    auto statusIt = controlButtons.right.find (btn);
+
+    if ( statusIt != controlButtons.right.end () ) {
+        visability.set (statusIt->second, state);
+    }
+
+    updateUi ();
+}
+
 /**********************************************************************
-*                    TreeWidgetBasedFeaturePicker                    *
-**********************************************************************/
+ *                    TreeWidgetBasedFeaturePicker                    *
+ **********************************************************************/
 
 QTreeWidgetItem *TreeWidgetBasedFeaturePickerWidget::createTreeWidgetItem (
         QTreeWidget *treeWidget,
@@ -111,15 +184,15 @@ QTreeWidgetItem *TreeWidgetBasedFeaturePickerWidget::createTreeWidgetItem (
     treeWidget->addTopLevelItem (item);
 
     // Hide the item if it shouldn't be visible
-    item->setHidden (!picker->isVisible (status));
+    item->setHidden (!isVisible (status));
 
     return item;
 }
 
 
 /**********************************************************************
-*                   FeaturePickSingleSelectWidget                    *
-**********************************************************************/
+ *                   FeaturePickSingleSelectWidget                    *
+ **********************************************************************/
 
 FeaturePickerSinglePanelWidget::FeaturePickerSinglePanelWidget (
         FeaturePicker *picker_s, QWidget *parent )
@@ -133,7 +206,7 @@ FeaturePickerSinglePanelWidget::FeaturePickerSinglePanelWidget (
 
     setupContent(treeWidget);
 
-    if (picker->isMultiPick ()) {
+    if (getPicker ()->isMultiPick ()) {
         treeWidget->setSelectionMode ( QAbstractItemView::MultiSelection );
     } else {
         treeWidget->setSelectionMode ( QAbstractItemView::SingleSelection );
@@ -150,7 +223,7 @@ std::vector <App::DocumentObject *> FeaturePickerSinglePanelWidget::getSelectedF
 
     auto sel = treeWidget->selectedItems();
 
-    if (picker->isMultiPick ()) {
+    if (getPicker ()->isMultiPick ()) {
         rv.reserve ( sel.size() );
 
         for (auto item: sel) {
@@ -175,13 +248,13 @@ std::vector <App::DocumentObject *> FeaturePickerSinglePanelWidget::getSelectedF
 }
 
 void FeaturePickerSinglePanelWidget::updateUi() {
-    const auto & picked = picker->getPickedFeatures ();
+    const auto & picked = getPicker ()->getPickedFeatures ();
     std::set<App::DocumentObject *> pickedSet (picked.begin(), picked.end());
 
     bool wasBlocked = this->blockSignals ( true );
     bool selected = false;
 
-    for ( auto featStat : picker->getFeaturesStatusMap () ) {
+    for ( auto featStat : getPicker ()->getFeaturesStatusMap () ) {
         App::DocumentObject *feat = featStat.first;
         auto featIt = treeItems.left.find (feat);
 
@@ -193,7 +266,7 @@ void FeaturePickerSinglePanelWidget::updateUi() {
         }
 
         // Select the feature if it is picked
-        if (picker->isMultiPick () || !selected) {
+        if (getPicker ()->isMultiPick () || !selected) {
             if (pickedSet.find (feat) != pickedSet.end()) {
                 twItem->setSelected (true);
                 selected=true;
@@ -202,21 +275,23 @@ void FeaturePickerSinglePanelWidget::updateUi() {
             twItem->setSelected (false);
         }
 
-        twItem->setHidden ( !picker->isVisible (featStat.second) );
+        twItem->setHidden ( !isVisible (featStat.second) );
     }
 
     this->blockSignals (wasBlocked);
+
+    TreeWidgetBasedFeaturePickerWidget::updateUi ();
 }
 
 
 /**********************************************************************
-*                     FeaturePickTwoPanelWidget                      *
-**********************************************************************/
+ *                     FeaturePickTwoPanelWidget                      *
+ **********************************************************************/
 FeaturePickerDoublePanelWidget::FeaturePickerDoublePanelWidget (
         FeaturePicker *picker_s, QWidget *parent )
 : TreeWidgetBasedFeaturePickerWidget ( picker_s, parent )
 {
-    if (!picker->isMultiPick ()) {
+    if (!getPicker ()->isMultiPick ()) {
         throw Base::Exception ( "FeaturePickerDoublePlaneWidget couldn't be used for single selection\n" );
     }
 
@@ -259,12 +334,12 @@ std::vector <App::DocumentObject *> FeaturePickerDoublePanelWidget::getSelectedF
 }
 
 void FeaturePickerDoublePanelWidget::updateUi() {
-    const auto & picked = picker->getPickedFeatures ();
+    const auto & picked = getPicker ()->getPickedFeatures ();
     std::set<App::DocumentObject *> pickedSet (picked.begin(), picked.end());
 
     bool wasBlocked = this->blockSignals ( true );
 
-    for ( auto featStat : picker->getFeaturesStatusMap () ) {
+    for ( auto featStat : getPicker ()->getFeaturesStatusMap () ) {
         App::DocumentObject *feat = featStat.first;
         auto featIt = treeItems.left.find (feat);
 
@@ -281,11 +356,13 @@ void FeaturePickerDoublePanelWidget::updateUi() {
             twItem->setHidden (false);
         } else {
             actionSelector->unselectItem (twItem);
-            twItem->setHidden ( !picker->isVisible (featStat.second) );
+            twItem->setHidden ( !isVisible (featStat.second) );
         }
     }
 
     this->blockSignals (wasBlocked);
+
+    TreeWidgetBasedFeaturePickerWidget::updateUi ();
 }
 
 inline QTreeWidgetItem * FeaturePickerDoublePanelWidget::createTreeWidgetItem (
@@ -293,111 +370,6 @@ inline QTreeWidgetItem * FeaturePickerDoublePanelWidget::createTreeWidgetItem (
 {
     return TreeWidgetBasedFeaturePickerWidget::createTreeWidgetItem (
             actionSelector->availableTreeWidget(), feat, stat);
-}
-
-/**********************************************************************
- *                      FeaturePickControlWidget                      *
- **********************************************************************/
-
-FeaturePickerControlWidget::FeaturePickerControlWidget ( FeaturePicker *picker_s, QWidget *parent )
-    : QWidget (parent), picker ( picker_s )
-{
-    assert ( picker );
-    QBoxLayout * layout = new QVBoxLayout (this);
-    this->setLayout ( layout );
-
-    auto existingStatuses = picker->getFeatureStatusMask ( );
-
-    // A commone code for adding a toolButton
-    auto addToolButton = [this, layout, existingStatuses] (
-            FeaturePicker::FeatureStatus status, const char * icon, const QString & toolTip) -> QToolButton * {
-        QToolButton *btn = new QToolButton (this);
-
-        btn->setIcon (Gui::BitmapFactory().pixmap(icon));
-        btn->setToolTip (toolTip);
-        btn->setCheckable (true);
-        btn->setChecked ( this->picker->isVisible (status) );
-        btn->setDisabled ( !existingStatuses[status] );
-        this->layout ()->addWidget (btn);
-        this->controlButtons.insert ( ButtonsBimap::value_type ( status , btn ) );
-        connect (btn, SIGNAL (clicked (bool) ), this, SLOT( onStateButtonClicked (bool) ) );
-
-        return btn;
-    };
-
-    // TODO all icons here are temporary and should be replaced later (2015-12-19, Fat-Zer)
-    addToolButton (FeaturePicker::isUsed, "PartDesign_Pad", tr ("Show used features") );
-    QToolButton * bodyBtn = addToolButton (FeaturePicker::otherBody, "PartDesign_Body_Tree",
-            tr ("Show features which doesn't belong to current body") );
-    QToolButton * partBtn = addToolButton (FeaturePicker::otherPart, "PartFeature",
-            tr ("Show features which doesn't belong to current part") );
-    addToolButton (FeaturePicker::afterTip, "PartDesign_MoveTip",
-            tr ("Show features located in current body after the tip") );
-
-    // If external features visability is disabled; disable the other body/part buttons also
-    if ( !picker->isVisible ( FeaturePicker::isExternal ) ) {
-        bodyBtn->setDisabled (true);
-        partBtn->setDisabled (true);
-    }
-
-    layout->addStretch ();
-
-    // apply right pushbutton states on modifications of the picker
-    connect ( picker, SIGNAL ( visabilityChanged ( PartDesignGui::FeaturePicker::FeatureStatus, bool ) ),
-              this, SLOT ( onVisabilityChanged ( PartDesignGui::FeaturePicker::FeatureStatus, bool ) ) );
-    connect ( picker, SIGNAL ( featureStatusSet ( App::DocumentObject *,
-                                                  PartDesignGui::FeaturePicker::StatusSet ) ),
-              this, SLOT ( onFeatureStatusSet ( ) ) );
-}
-
-void FeaturePickerControlWidget::onVisabilityChanged ( FeaturePicker::FeatureStatus status, bool state ) {
-    auto tbIt = controlButtons.left.find (status);
-    if ( tbIt != controlButtons.left.end () ) {
-        tbIt->second->setChecked (state);
-    }
-
-    // on external visability changed update visability of the buttons
-    if ( status == FeaturePicker::isExternal) {
-        onFeatureStatusSet ();
-    }
-}
-
-void FeaturePickerControlWidget::onStateButtonClicked ( bool state ) {
-    QToolButton *btn = qobject_cast <QToolButton *> (sender ());
-    if ( !btn ) {
-# ifdef FC_DEBUG
-        Base::Console().Error( "FeaturePickControlWidget::onStateButtonClicked bad signal sender'\n");
-# endif
-        return;
-    }
-
-    auto statusIt = controlButtons.right.find (btn);
-
-    if ( statusIt != controlButtons.right.end () ) {
-        picker->setVisability (statusIt->second, state);
-    }
-}
-
-void FeaturePickerControlWidget::onFeatureStatusSet ( ) {
-    auto existingStatuses = picker->getFeatureStatusMask ( );
-
-    // Disable all buttons features for which statuses are not present in the picker
-    for ( auto btnStat: controlButtons.right ) {
-        btnStat.first->setDisabled ( !existingStatuses[btnStat.second] );
-    }
-
-    // If external features visability is disabled; disable the other body/part buttons also
-    if ( !picker->isVisible ( FeaturePicker::isExternal ) ) {
-        auto disableButton = [this] (FeaturePicker::FeatureStatus status) {
-            auto tbIt = controlButtons.left.find (status);
-            if ( tbIt != controlButtons.left.end () ) {
-                tbIt->second->setDisabled ( true ) ;
-            }
-        };
-
-        disableButton ( FeaturePicker::otherBody );
-        disableButton ( FeaturePicker::otherPart );
-    }
 }
 
 #include "moc_FeaturePickerWidgets.cpp"
