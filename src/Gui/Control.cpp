@@ -155,7 +155,9 @@ int ControlSingleton::showDialog(Gui::TaskView::TaskDialog *dlg, bool sync)
 
     // if sync is specified run the event loop and wait for dialog being finished
     if (sync) {
-        syncDialogLoop = new QEventLoop();
+        QScopedPointer <QEventLoop> localEventLoop (new QEventLoop());
+        syncDialogLoop = localEventLoop.data ();
+
         // We cannot rely on event loop return code due to QEventDialog::exit () may be called 
         // from QCoreApplication::exit (); so introduce yet another variable
         syncDialogRC = -1;
@@ -163,8 +165,6 @@ int ControlSingleton::showDialog(Gui::TaskView::TaskDialog *dlg, bool sync)
         syncDialogLoop->exec ();
         rv = syncDialogRC;
         disconnect(getTaskPanel (), SIGNAL(dialogFinished(int)), this, SLOT (finishSyncDialog(int)) );
-        delete syncDialogLoop;
-        syncDialogLoop = nullptr;
     }
 
     return rv;

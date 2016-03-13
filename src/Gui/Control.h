@@ -27,6 +27,7 @@
 // Std. configurations
 
 #include <QObject>
+#include <QPointer>
 #include <bitset>
 #include <stack>
 
@@ -121,7 +122,7 @@ private:
 
     Gui::TaskView::TaskDialog *ActiveDialog;
 
-    QEventLoop *syncDialogLoop;
+    QPointer <QEventLoop> syncDialogLoop;
     int syncDialogRC;
 private:
     /// Construction
