@@ -36,7 +36,7 @@ namespace PartDesignGui {
 class FeaturePicker;
 
 /// A task for use in the associated dialog
-class TaskFeaturePick : public Gui::TaskView::TaskBox//, public Gui::SelectionObserver
+class TaskFeaturePick : public Gui::TaskView::TaskBox
 {
     Q_OBJECT
 public:
@@ -52,7 +52,6 @@ public:
 //
 // protected Q_SLOTS:
 //     void onUpdate(bool);
-//     void onSelectionChanged(const Gui::SelectionChanges& msg);
 //
 // private:
 //     Ui_TaskFeaturePick* ui;

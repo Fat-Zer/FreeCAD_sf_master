@@ -24,6 +24,8 @@
 #define FEATUREPICKERWIDGETS_H_ESFQFHD1
 
 #include <QWidget>
+#include <QPointer>
+#include <Gui/Selection.h>
 
 #include <boost/bimap.hpp>
 
@@ -100,7 +102,7 @@ protected:
     void setupContent (QWidget *wgt);
 
 private:
-    FeaturePicker *picker;
+    QPointer<FeaturePicker> picker;
     FeaturePicker::StatusSet visability;
 
     typedef boost::bimap< FeaturePicker::FeatureStatus, QToolButton *> ButtonsBimap;
@@ -112,17 +114,29 @@ private:
  * A common base class for tree widget based widgets
  * @see FeaturePickerSinglePanelWidget FeaturePickerDoublePanelWidget
  */
-class TreeWidgetBasedFeaturePickerWidget: public AbstractFeaturePickerWidget {
+class TreeWidgetBasedFeaturePickerWidget: public AbstractFeaturePickerWidget, protected Gui::SelectionObserver {
     Q_OBJECT
 public:
     TreeWidgetBasedFeaturePickerWidget ( FeaturePicker *picker_s, QWidget *parent = 0 )
         :AbstractFeaturePickerWidget (picker_s, parent) { }
+
+public Q_SLOTS:
+    /// Update the widget according to changes in featurePicker
+    virtual void updateUi() {
+        update3dSelection ( );
+    }
+
+    /// Select items in the 3d view according to current selection in a tree widget
+    void update3dSelection ( );
 
 protected:
     /// Constructs a new tree widget item for the given feature
     QTreeWidgetItem * createTreeWidgetItem ( QTreeWidget *treeWidget,
             App::DocumentObject *feat,
             const FeaturePicker::StatusSet & status);
+
+    /// Adjusts the selection according to the changes in the 3d View
+    void onSelectionChanged ( const Gui::SelectionChanges& msg);
 
     typedef boost::bimap < App::DocumentObject *, QTreeWidgetItem *> TreeWidgetItemMap;
     TreeWidgetItemMap treeItems;

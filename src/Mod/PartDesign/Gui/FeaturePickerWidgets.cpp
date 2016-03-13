@@ -110,9 +110,10 @@ AbstractFeaturePickerWidget::~AbstractFeaturePickerWidget () {
 }
 
 void  AbstractFeaturePickerWidget::updatePickedFeatures () {
-    picker->setPickedFeatures (getSelectedFeatures ());
-
-    // TODO Select the feature in the 3DView (2016-02-28, Fat-Zer)
+    if (picker) { // note that picker may be destroyed before the widget
+        auto selFeatures = getSelectedFeatures ();
+        picker->setPickedFeatures (getSelectedFeatures ());
+    }
 }
 
 void AbstractFeaturePickerWidget::setupContent (QWidget *cont) {
@@ -122,6 +123,10 @@ void AbstractFeaturePickerWidget::setupContent (QWidget *cont) {
 }
 
 void AbstractFeaturePickerWidget::updateUi () {
+    if (!picker) {
+        return;
+    }
+
     auto existingStatuses = picker->getFeatureStatusMask ( );
 
     for ( auto btnStat: controlButtons.left ) {
@@ -189,6 +194,46 @@ QTreeWidgetItem *TreeWidgetBasedFeaturePickerWidget::createTreeWidgetItem (
     return item;
 }
 
+void TreeWidgetBasedFeaturePickerWidget::update3dSelection () {
+    bool blocked = Gui::SelectionObserver::blockConnection ( true );
+    for ( auto featItem : treeItems.left ) {
+        App::DocumentObject *feat = featItem.first;
+        QTreeWidgetItem *item = featItem.second;
+        if (item->isSelected ()) {
+            if ( ! Gui::Selection ().isSelected (feat) ) {
+                Gui::Selection().addSelection ( feat->getDocument ()->getName (), feat->getNameInDocument () );
+            }
+        } else {
+            if ( Gui::Selection ().isSelected (feat) ) {
+                Gui::Selection().rmvSelection ( feat->getDocument ()->getName (), feat->getNameInDocument () );
+            }
+        }
+    }
+
+    Gui::SelectionObserver::blockConnection ( blocked );
+}
+
+void TreeWidgetBasedFeaturePickerWidget::onSelectionChanged ( const Gui::SelectionChanges& /*msg*/) {
+    std::set <App::DocumentObject *> selectionSet;
+
+    for(Gui::SelectionSingleton::SelObj selObj :  Gui::Selection().getSelection()) {
+        selectionSet.insert (selObj.pObject);
+    }
+
+    for ( auto featItem : treeItems.left ) {
+        App::DocumentObject *feat = featItem.first;
+        QTreeWidgetItem *item = featItem.second;
+
+        if (selectionSet.find (feat) != selectionSet.end ()) {
+            if ( ! item->treeWidget ()->isItemHidden ( item ) ) {
+                item->setSelected (true);
+            }
+        } else {
+            item->setSelected (false);
+        }
+    }
+}
+
 
 /**********************************************************************
  *                   FeaturePickSingleSelectWidget                    *
@@ -215,6 +260,7 @@ FeaturePickerSinglePanelWidget::FeaturePickerSinglePanelWidget (
     updateUi ();
 
     connect ( treeWidget, SIGNAL ( itemSelectionChanged () ), this, SIGNAL ( selectionChanged () ) );
+    connect ( treeWidget, SIGNAL ( itemSelectionChanged () ), this, SLOT ( update3dSelection () ) );
 }
 
 
@@ -311,6 +357,11 @@ FeaturePickerDoublePanelWidget::FeaturePickerDoublePanelWidget (
     connect ( selectedModel, SIGNAL ( rowsMoved ( const QModelIndex &, int, int,
                                                   const QModelIndex &, int ) ),
               this, SIGNAL ( selectionChanged () ) );
+
+    connect ( actionSelector->availableTreeWidget(), SIGNAL ( itemSelectionChanged () ),
+            this, SLOT ( update3dSelection () ) );
+    connect ( actionSelector->selectedTreeWidget(), SIGNAL ( itemSelectionChanged () ),
+            this, SLOT ( update3dSelection () ) );
 }
 
 
