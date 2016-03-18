@@ -266,6 +266,9 @@ void TaskMirroredParameters::apply()
 
 TaskMirroredParameters::~TaskMirroredParameters()
 {
+    // TODO move this somewhere else: if dialog getting canceled objectmay be
+    //      already distroyed to this point (2016-03-18, Fat-Zer)
+
     //hide the parts coordinate system axis for selection
     PartDesign::Body * body = PartDesign::Body::findBodyOf ( getObject() );
     if ( body ) {

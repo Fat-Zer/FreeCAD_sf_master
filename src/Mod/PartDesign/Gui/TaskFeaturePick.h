@@ -43,8 +43,6 @@ public:
      TaskFeaturePick(FeaturePicker *picker, QWidget *parent = 0);
 
 // TODO Rewright (2015-12-09, Fat-Zer)
-//
-//     std::vector<App::DocumentObject*> getFeatures();
 //     std::vector<App::DocumentObject*> buildFeatures();
 //     void showExternal(bool val);
 //
@@ -59,11 +57,7 @@ public:
 //     SoSwitch* featureswitch;
 //     std::vector<Gui::ViewProviderOrigin*> origins;
 //
-// //    std::vector<QString> features;
-// //    std::vector<featureStatus> statuses;
-//
 //     void updateList();
-//     const QString getFeatureStatusString(const featureStatus st);
 };
 
 

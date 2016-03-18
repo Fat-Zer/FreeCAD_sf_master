@@ -79,6 +79,11 @@ public:
     /// Returns a current visability settings of features
     const FeaturePicker::StatusSet & getVisability () { return visability; }
 
+    /// Returns a vector of features sorted in order for display purposes
+    const std::vector<App::DocumentObject *> & getSortedFeatures () {
+        return sortedFeatures;
+    }
+
 Q_SIGNALS:
     /// The signal should be emitted by derived class when feature selection for picker is changed
     void selectionChanged ();
@@ -97,6 +102,11 @@ private Q_SLOTS:
     /// A callback on a button getting clicked
     void onStateButtonClicked ( bool state );
 
+    /// Resort the features
+    void updateSortedFeatures ();
+
+private:
+    void sortFeatures ();
 protected:
     /// Sets up the user interface widget for derived classes
     void setupContent (QWidget *wgt);
@@ -107,6 +117,8 @@ private:
 
     typedef boost::bimap< FeaturePicker::FeatureStatus, QToolButton *> ButtonsBimap;
     ButtonsBimap controlButtons;
+
+    std::vector<App::DocumentObject *> sortedFeatures;
 };
 
 

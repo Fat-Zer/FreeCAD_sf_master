@@ -26,6 +26,9 @@
 # include <QToolButton>
 # include <QTreeWidget>
 # include <QTreeWidgetItem>
+# include <boost/range/adaptor/map.hpp>
+# include <boost/range/algorithm.hpp>
+# include <boost/range/algorithm_ext.hpp>
 #endif
 
 #include <Base/Console.h>
@@ -37,6 +40,10 @@
 #include <Gui/Selection.h>
 #include <Gui/ViewProvider.h>
 #include <Gui/Widgets.h>
+
+#include <Mod/PartDesign/App/Body.h>
+
+#include "Utils.h"
 
 #include "FeaturePickerWidgets.h"
 
@@ -92,6 +99,8 @@ AbstractFeaturePickerWidget::AbstractFeaturePickerWidget (
             tr ("Show features which doesn't belong to current part") );
     addToolButton (FeaturePicker::afterTip, "PartDesign_MoveTip",
             tr ("Show features located in current body after the tip") );
+    addToolButton (FeaturePicker::basePlane, "view-measurement",
+            tr ("Show base plane axis/feature") );
 
     pbLayout->addStretch ();
 
@@ -102,7 +111,11 @@ AbstractFeaturePickerWidget::AbstractFeaturePickerWidget (
     connect ( picker, SIGNAL ( pickedFeaturesChanged () ), this, SLOT (updateUi () ) );
     connect ( picker, SIGNAL ( featureStatusSet ( App::DocumentObject *,
                                                   PartDesignGui::FeaturePicker::StatusSet ) ),
+              this, SLOT ( updateSortedFeatures () ) ); //< note this called before updateUi
+    connect ( picker, SIGNAL ( featureStatusSet ( App::DocumentObject *,
+                                                  PartDesignGui::FeaturePicker::StatusSet ) ),
               this, SLOT ( updateUi () ) );
+    updateSortedFeatures ();
 }
 
 AbstractFeaturePickerWidget::~AbstractFeaturePickerWidget () {
@@ -154,6 +167,117 @@ void AbstractFeaturePickerWidget::onStateButtonClicked ( bool state ) {
 
     updateUi ();
 }
+
+
+void AbstractFeaturePickerWidget::updateSortedFeatures () {
+    const auto & pickerFeatures = picker->getFeaturesStatusMap ();
+
+    sortedFeatures.clear ();
+
+    // Handle trivial cases
+    if (pickerFeatures.empty()) {
+        return;
+    } else if (pickerFeatures.size () == 1) {
+        sortedFeatures.push_back (pickerFeatures.begin()->first);
+        return;
+    }
+
+    // Constants for more readable code
+    enum { CurrentBody=0, CurrentPartInBody, CurrentPart, AnotherPartInBody,
+        AnotherPart, InBody, NotInBody ,SORT_TYPE_COUNT };
+
+    std::array <std::list <App::DocumentObject *>, SORT_TYPE_COUNT> categories;
+
+    const auto pickerFeaturesKeys =  boost::adaptors::keys(pickerFeatures);
+    std::set<App::DocumentObject *> features (pickerFeaturesKeys.begin(), pickerFeaturesKeys.end());
+
+    App::Document *doc = (*features.begin ())->getDocument ();
+
+    std::vector<App::DocumentObject *> parts = doc->getObjectsOfType (App::Part::getClassTypeId ());
+    std::vector<App::DocumentObject *> bodies = doc->getObjectsOfType (PartDesign::Body::getClassTypeId ());
+    std::set<App::DocumentObject *> bodiesSet (bodies.begin(), bodies.end() );
+
+    // Detect active body & part
+    // TODO May be this required to do based on an active document (2016-03-17, Fat-Zer)
+    PartDesign::Body *activeBody = getBody (false);
+    App::Part *activePart = activeBody ? App::Part::getPartOfObject (activeBody) : getActivePart ();
+
+    auto labelComparePred = [] (App::DocumentObject *o1, App::DocumentObject *o2) -> bool {
+        return strcmp (o1->Label.getValue(), o2->Label.getValue() ) < 0;
+    };
+
+    // Iterate over parts and add all objects to apropriate groups
+    for (App::DocumentObject* partObj: boost::sort ( parts, labelComparePred ) ) {
+        assert ( partObj->isDerivedFrom (App::Part::getClassTypeId ()) );
+        App::Part *part = static_cast<App::Part *> (partObj);
+
+        for (App::DocumentObject *obj: part->getGeoSubObjects ()) {
+            if ( obj->isDerivedFrom (PartDesign::Body::getClassTypeId ()) ) {
+                assert ( obj->isDerivedFrom (PartDesign::Body::getClassTypeId () ) );
+                PartDesign::Body *body = static_cast <PartDesign::Body *> (obj);
+                for (App::DocumentObject* bodyFeat: body->Model.getValues()) {
+                    auto featIt = features.find (bodyFeat);
+                    if ( featIt !=features.end() ) {
+                        if (body == activeBody) {
+                            categories[CurrentBody].push_back (*featIt);
+                        } else if (part==activePart) {
+                            categories[CurrentPartInBody].push_back (*featIt);
+                        } else {
+                            categories[AnotherPartInBody].push_back (*featIt);
+                        }
+                        features.erase (featIt);
+                    }
+                }
+                bodiesSet.erase (body);
+            } else {
+                auto featIt = features.find (obj);
+                if ( featIt !=features.end() ) {
+                    if (part == activePart) {
+                        categories[CurrentPart].push_back (*featIt);
+                    } else {
+                        categories[AnotherPart].push_back (*featIt);
+                    }
+                    features.erase (featIt);
+                }
+            }
+        }
+    }
+
+    // now bodySet has only bodies not belong to an activePart so iterate over bodies ordered by their Labels
+    std::set<App::DocumentObject *, decltype (labelComparePred)> labelOrderedBodySet (
+            bodiesSet.begin(), bodiesSet.end(), labelComparePred );
+    for (App::DocumentObject* bodyObj:labelOrderedBodySet)
+    {
+
+        PartDesign::Body *body = static_cast <PartDesign::Body *> (bodyObj);
+        for (App::DocumentObject* bodyFeat: body->Model.getValues()) {
+            auto featIt = features.find (bodyFeat);
+            if ( featIt !=features.end() ) {
+                if (body == activeBody) {
+                    categories[CurrentBody].push_back (*featIt);
+                } else {
+                    categories[InBody].push_back (*featIt);
+                }
+                features.erase (featIt);
+            }
+        }
+
+    }
+
+    // Now features contains only objects not included neither in a port or a body
+    std::set<App::DocumentObject *, decltype (labelComparePred)> labelOrderedFeatures (
+            features.begin(), features.end(), labelComparePred );
+    if (activeBody || activePart) {
+        boost::push_back ( categories[NotInBody], labelOrderedFeatures);
+    } else { // if there is no activeBody make out of body features to be displayed first
+        boost::push_back ( categories[CurrentBody], labelOrderedFeatures );
+    }
+
+    for (int i=0; i<SORT_TYPE_COUNT; i++) {
+        boost::push_back ( sortedFeatures, categories[i]);
+    }
+}
+
 
 /**********************************************************************
  *                    TreeWidgetBasedFeaturePicker                    *
@@ -266,6 +390,9 @@ FeaturePickerSinglePanelWidget::FeaturePickerSinglePanelWidget (
 
 std::vector <App::DocumentObject *> FeaturePickerSinglePanelWidget::getSelectedFeatures () {
     std::vector <App::DocumentObject *> rv;
+    if (!getPicker ()) {
+        return rv;
+    }
 
     auto sel = treeWidget->selectedItems();
 
@@ -300,16 +427,23 @@ void FeaturePickerSinglePanelWidget::updateUi() {
     bool wasBlocked = this->blockSignals ( true );
     bool selected = false;
 
-    for ( auto featStat : getPicker ()->getFeaturesStatusMap () ) {
-        App::DocumentObject *feat = featStat.first;
+    int i=0;
+    for ( auto feat: getSortedFeatures() ) {
+        FeaturePicker::StatusSet status = getPicker()->getStatus (feat);
         auto featIt = treeItems.left.find (feat);
 
         QTreeWidgetItem *twItem;
         if (featIt != treeItems.left.end ()) {
             twItem = featIt->second;
         } else {
-            twItem = createTreeWidgetItem (featStat.first, featStat.second);
+            twItem = createTreeWidgetItem (feat, status);
         }
+
+        int twIndex = treeWidget->indexOfTopLevelItem (twItem);
+        if (twIndex != i) {
+            treeWidget->insertTopLevelItem( i, treeWidget->takeTopLevelItem(twIndex));
+        }
+        i++;
 
         // Select the feature if it is picked
         if (getPicker ()->isMultiPick () || !selected) {
@@ -321,7 +455,7 @@ void FeaturePickerSinglePanelWidget::updateUi() {
             twItem->setSelected (false);
         }
 
-        twItem->setHidden ( !isVisible (featStat.second) );
+        twItem->setHidden ( !isVisible (status) );
     }
 
     this->blockSignals (wasBlocked);
@@ -385,20 +519,25 @@ std::vector <App::DocumentObject *> FeaturePickerDoublePanelWidget::getSelectedF
 }
 
 void FeaturePickerDoublePanelWidget::updateUi() {
+    if (!getPicker ()) {
+        return;
+    }
+
     const auto & picked = getPicker ()->getPickedFeatures ();
     std::set<App::DocumentObject *> pickedSet (picked.begin(), picked.end());
 
     bool wasBlocked = this->blockSignals ( true );
 
-    for ( auto featStat : getPicker ()->getFeaturesStatusMap () ) {
-        App::DocumentObject *feat = featStat.first;
+    int i=0;
+    for ( auto feat: getSortedFeatures() ) {
+        FeaturePicker::StatusSet status = getPicker()->getStatus (feat);
         auto featIt = treeItems.left.find (feat);
 
         QTreeWidgetItem *twItem;
         if (featIt != treeItems.left.end ()) {
             twItem = featIt->second;
         } else {
-            twItem = createTreeWidgetItem (featStat.first, featStat.second);
+            twItem = createTreeWidgetItem (feat, status);
         }
 
         // move the feature to selected if it is picked
@@ -407,7 +546,17 @@ void FeaturePickerDoublePanelWidget::updateUi() {
             twItem->setHidden (false);
         } else {
             actionSelector->unselectItem (twItem);
-            twItem->setHidden ( !isVisible (featStat.second) );
+            twItem->setHidden ( !isVisible (status) );
+
+            QTreeWidget * tw = actionSelector->availableTreeWidget ();
+            int twIndex = tw->indexOfTopLevelItem (twItem);
+            if (twIndex != i) {
+                if (twItem->treeWidget ()) {
+                    twItem->treeWidget ()->takeTopLevelItem (twIndex);
+                }
+                tw->insertTopLevelItem ( i, twItem );
+            }
+            i++;
         }
     }
 

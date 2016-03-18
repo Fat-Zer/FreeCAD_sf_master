@@ -166,65 +166,6 @@ int TaskDlgFeaturePick::safeExecute ( FeaturePicker * picker ) {
 //
 // }
 //
-// void TaskFeaturePick::updateList()
-// {
-//     int index = 0;
-//
-//     for (std::vector<featureStatus>::const_iterator st = statuses.begin(); st != statuses.end(); st++) {
-//         QListWidgetItem* item = ui->listWidget->item(index);
-//
-//         switch (*st) {
-//             case validFeature: item->setHidden(false); break;
-//             case invalidShape: item->setHidden(true); break;
-//             case isUsed: item->setHidden(!ui->checkUsed->isChecked()); break;
-//             case noWire: item->setHidden(true); break;
-//             case otherBody: item->setHidden(!ui->checkOtherBody->isChecked()); break;
-//             case otherPart: item->setHidden(!ui->checkOtherPart->isChecked()); break;
-//             case notInBody: item->setHidden(!ui->checkOtherPart->isChecked()); break;
-//             case basePlane: item->setHidden(false); break;
-//             case afterTip:  item->setHidden(true); break;
-//         }
-//
-//         index++;
-//     }
-// }
-//
-// void TaskFeaturePick::onUpdate(bool)
-// {
-//     bool enable = false;
-//     if(ui->checkOtherBody->isChecked() || ui->checkOtherPart->isChecked())
-//         enable = true;
-//
-//     ui->radioDependent->setEnabled(enable);
-//     ui->radioIndependent->setEnabled(enable);
-//     ui->radioXRef->setEnabled(enable);
-//
-//     updateList();
-// }
-//
-// std::vector<App::DocumentObject*> TaskFeaturePick::getFeatures() {
-//
-//     features.clear();
-//     QListIterator<QListWidgetItem*> i(ui->listWidget->selectedItems());
-//     while (i.hasNext()) {
-//
-//         auto item = i.next();
-//         if(item->isHidden())
-//             continue;
-//
-//         QString t = item->text();
-//         t = t.left(t.indexOf(QString::fromAscii("(")) - 1);
-//         features.push_back(t);
-//     }
-//
-//     std::vector<App::DocumentObject*> result;
-//
-//     for (std::vector<QString>::const_iterator s = features.begin(); s != features.end(); s++)
-//         result.push_back(App::GetApplication().getActiveDocument()->getObject(s->toAscii().data()));
-//
-//     return result;
-// }
-//
 // std::vector<App::DocumentObject*> TaskFeaturePick::buildFeatures() {
 //
 //     int index = 0;
@@ -409,15 +350,6 @@ int TaskDlgFeaturePick::safeExecute ( FeaturePicker * picker ) {
 //
 //     return copy;
 // }
-//
-//
-// void TaskFeaturePick::showExternal(bool val) {
-//
-//     ui->checkOtherBody->setChecked(val);
-//     ui->checkOtherPart->setChecked(val);
-//     updateList();
-// }
-//
 //
 // //**************************************************************************
 // //**************************************************************************
