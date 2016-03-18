@@ -124,7 +124,7 @@ FeaturePicker::StatusSet FeaturePicker::bodyRelationStatus ( App::DocumentObject
     }
 
     // Check if the sketch is after tip
-    if (body && objBody->isAfterInsertPoint ( obj )) {
+    if (objBody && objBody->isAfterInsertPoint ( obj )) {
         rv.set (afterTip);
     }
 
