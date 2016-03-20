@@ -364,8 +364,8 @@ void TreeWidgetBasedFeaturePickerWidget::onSelectionChanged ( const Gui::Selecti
  **********************************************************************/
 
 FeaturePickerSinglePanelWidget::FeaturePickerSinglePanelWidget (
-        FeaturePicker *picker_s, QWidget *parent )
-:  TreeWidgetBasedFeaturePickerWidget ( picker_s, parent )
+        FeaturePicker *picker_s, bool s_multipick, QWidget *parent )
+:  TreeWidgetBasedFeaturePickerWidget ( picker_s, parent ), multipick (s_multipick)
 {
     treeWidget = new QTreeWidget (this);
     treeWidget->setHeaderHidden ( true );
@@ -375,7 +375,7 @@ FeaturePickerSinglePanelWidget::FeaturePickerSinglePanelWidget (
 
     setupContent(treeWidget);
 
-    if (getPicker ()->isMultiPick ()) {
+    if (multipick) {
         treeWidget->setSelectionMode ( QAbstractItemView::MultiSelection );
     } else {
         treeWidget->setSelectionMode ( QAbstractItemView::SingleSelection );
@@ -396,7 +396,7 @@ std::vector <App::DocumentObject *> FeaturePickerSinglePanelWidget::getSelectedF
 
     auto sel = treeWidget->selectedItems();
 
-    if (getPicker ()->isMultiPick ()) {
+    if (multipick) {
         rv.reserve ( sel.size() );
 
         for (auto item: sel) {
@@ -446,7 +446,7 @@ void FeaturePickerSinglePanelWidget::updateUi() {
         i++;
 
         // Select the feature if it is picked
-        if (getPicker ()->isMultiPick () || !selected) {
+        if (multipick || !selected) {
             if (pickedSet.find (feat) != pickedSet.end()) {
                 twItem->setSelected (true);
                 selected=true;
@@ -467,31 +467,18 @@ void FeaturePickerSinglePanelWidget::updateUi() {
 /**********************************************************************
  *                     FeaturePickTwoPanelWidget                      *
  **********************************************************************/
+
 FeaturePickerDoublePanelWidget::FeaturePickerDoublePanelWidget (
         FeaturePicker *picker_s, QWidget *parent )
 : TreeWidgetBasedFeaturePickerWidget ( picker_s, parent )
 {
-    if (!getPicker ()->isMultiPick ()) {
-        throw Base::Exception ( "FeaturePickerDoublePlaneWidget couldn't be used for single selection\n" );
-    }
-
     actionSelector = new Gui::ActionSelector (this);
 
     setupContent(actionSelector);
 
     updateUi ();
 
-    // Due to QTreeWidgets don't have signals on features added/removed, attach to the model
-    QAbstractItemModel *selectedModel = actionSelector->selectedTreeWidget ()->model ();
-
-    connect ( selectedModel, SIGNAL ( rowsInserted (const QModelIndex &, int, int) ),
-              this, SIGNAL ( selectionChanged () ) );
-    connect ( selectedModel, SIGNAL ( rowsRemoved (const QModelIndex &, int, int) ),
-              this, SIGNAL ( selectionChanged () ) );
-    connect ( selectedModel, SIGNAL ( rowsMoved ( const QModelIndex &, int, int,
-                                                  const QModelIndex &, int ) ),
-              this, SIGNAL ( selectionChanged () ) );
-
+    connect ( actionSelector, SIGNAL ( selectionChanged () ), this, SIGNAL ( selectionChanged () ) );
     connect ( actionSelector->availableTreeWidget(), SIGNAL ( itemSelectionChanged () ),
             this, SLOT ( update3dSelection () ) );
     connect ( actionSelector->selectedTreeWidget(), SIGNAL ( itemSelectionChanged () ),
@@ -551,10 +538,13 @@ void FeaturePickerDoublePanelWidget::updateUi() {
             QTreeWidget * tw = actionSelector->availableTreeWidget ();
             int twIndex = tw->indexOfTopLevelItem (twItem);
             if (twIndex != i) {
+                bool selected = false;
                 if (twItem->treeWidget ()) {
+                    selected = tw == twItem->treeWidget () && twItem->isSelected ();
                     twItem->treeWidget ()->takeTopLevelItem (twIndex);
                 }
                 tw->insertTopLevelItem ( i, twItem );
+                twItem->setSelected ( selected );
             }
             i++;
         }

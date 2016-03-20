@@ -42,8 +42,8 @@ using namespace PartDesignGui;
  *********************************************************************/
 
 
-FeaturePicker::FeaturePicker ( bool s_multiPick, QObject * parent )
-    : QObject (parent), multiPick (s_multiPick)
+FeaturePicker::FeaturePicker ( QObject * parent )
+    : QObject (parent)
 { }
 
 void FeaturePicker::setFeatureStatus( App::DocumentObject *obj, StatusSet status ) {

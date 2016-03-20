@@ -161,7 +161,9 @@ protected:
 class FeaturePickerSinglePanelWidget: public TreeWidgetBasedFeaturePickerWidget {
     Q_OBJECT
 public:
-    FeaturePickerSinglePanelWidget ( FeaturePicker *picker_s, QWidget *parent = 0 );
+    FeaturePickerSinglePanelWidget ( FeaturePicker *picker_s, QWidget *parent = 0 )
+        : FeaturePickerSinglePanelWidget (picker_s, false, parent ) {}
+    FeaturePickerSinglePanelWidget ( FeaturePicker *picker_s, bool s_multipick, QWidget *parent = 0 );
 
     virtual std::vector <App::DocumentObject *> getSelectedFeatures ();
 
@@ -181,6 +183,7 @@ private:
 
 private:
     QTreeWidget *treeWidget;
+    bool multipick;
 };
 
 

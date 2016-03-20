@@ -482,9 +482,11 @@ void CmdPartDesignNewSketch::activated(int iMsg)
             QMessageBox::warning(Gui::getMainWindow(), QObject::tr("No valid planes in this document"),
                 QObject::tr("Please create a plane first or select a face to sketch on"));
         } else {
-            if (PartDesignGui::TaskDlgFeaturePick::safeExecute ( &picker ) == 0) {
+            if ( PartDesignGui::safeTaskDlgExecute (
+                        new PartDesignGui::TaskDlgFeaturePick (&picker), /*sync=*/true ) == 0 )
+            {
                 auto pickedPlanes = picker.getPickedFeatures ();
-                assert (pickedPlanes.size() == 1);
+                assert (!pickedPlanes.empty());
                 plane = pickedPlanes.front ();
             }
         }
@@ -605,7 +607,9 @@ Part::Part2DObject * sketchBasedGetSketch ( Gui::Command* cmd ) {
                 QMessageBox::critical(Gui::getMainWindow(), QObject::tr("Invalid selection"),
                         QObject::tr("All selected sketches are invalid.") );
             } else {
-                if (PartDesignGui::TaskDlgFeaturePick::safeExecute ( &picker ) == 0) {
+                if ( PartDesignGui::safeTaskDlgExecute (
+                            new PartDesignGui::TaskDlgFeaturePick (&picker), /*sync=*/true ) == 0 )
+                {
                     auto pickedSketches = picker.getPickedFeatures ();
                     assert (pickedSketches.size() == 1);
                     rv = Base::freecad_dynamic_cast <Part2DObject> (*pickedSketches.begin ());
@@ -632,10 +636,12 @@ Part::Part2DObject * sketchBasedGetSketch ( Gui::Command* cmd ) {
                         QObject::tr("No valid sketch is available in the document"));
             } else {
                 // There are more than one valid sketch. run the picker dialog.
-                if (PartDesignGui::TaskDlgFeaturePick::safeExecute ( &picker ) == 0) {
+                if ( PartDesignGui::safeTaskDlgExecute (
+                            new PartDesignGui::TaskDlgFeaturePick (&picker), /*sync=*/true ) == 0 )
+                {
                     auto pickedSketches = picker.getPickedFeatures ();
-                    assert (pickedSketches.size() == 1);
-                    rv = Base::freecad_dynamic_cast <Part2DObject> (*pickedSketches.begin ());
+                    assert (!pickedSketches.empty());
+                    rv = Base::freecad_dynamic_cast <Part2DObject> (pickedSketches.front ());
                     assert (rv);
                 }
             }
@@ -1304,7 +1310,7 @@ void prepareTransformed(Gui::Command* cmd, const std::string& which,
             return;
         } else if (features.size () != 1) {
 
-            PartDesignGui::FeaturePicker picker( /*multiPick=*/ true);
+            PartDesignGui::FeaturePicker picker;
 
             std::vector<PartDesignGui::FeaturePicker::FeatureStatus> status;
             for (auto feat : features) {
@@ -1324,8 +1330,11 @@ void prepareTransformed(Gui::Command* cmd, const std::string& which,
                 picker.setFeatureStatus ( feat, featStatus );
             }
 
-            if ( PartDesignGui::TaskDlgFeaturePick::safeExecute (&picker) != 0 ) {
-                // Nothing selected
+            if ( PartDesignGui::safeTaskDlgExecute (
+                        new PartDesignGui::TaskDlgFeaturePick ( &picker, /*multiSelect=*/ true ),
+                        /*sync=*/true ) != 0 )
+            {
+                // dialog aborted
                 return;
             }
             features = picker.getPickedFeatures ();

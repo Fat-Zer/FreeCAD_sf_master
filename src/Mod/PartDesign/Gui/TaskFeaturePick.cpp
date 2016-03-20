@@ -52,13 +52,13 @@ using namespace PartDesignGui;
  *                          TaskFeaturePick                           *
  **********************************************************************/
 
-TaskFeaturePick::TaskFeaturePick ( FeaturePicker *picker, QWidget *parent )
+TaskFeaturePick::TaskFeaturePick ( FeaturePicker *picker, bool multiSelect, QWidget *parent )
     : TaskBox ( Gui::BitmapFactory().pixmap("edit-select-box"),
                 QObject::tr("Select feature"), true, parent)
 {
     // We need a separate container widget to add all controls to
     AbstractFeaturePickerWidget *pickWgt;
-    if ( picker->isMultiPick () ) {
+    if ( multiSelect ) {
         pickWgt = new FeaturePickerDoublePanelWidget (picker, this);
     } else {
         pickWgt = new FeaturePickerSinglePanelWidget (picker, this);
@@ -70,28 +70,10 @@ TaskFeaturePick::TaskFeaturePick ( FeaturePicker *picker, QWidget *parent )
  *                        TaskDlgFeaturePick                         *
  *********************************************************************/
 
-TaskDlgFeaturePick::TaskDlgFeaturePick ( FeaturePicker * picker )
+TaskDlgFeaturePick::TaskDlgFeaturePick ( FeaturePicker * picker, bool multiSelect )
     : TaskDialog()
 {
-    Content.push_back ( new TaskFeaturePick ( picker) );
-}
-
-int TaskDlgFeaturePick::safeExecute ( FeaturePicker * picker ) {
-
-    Gui::TaskView::TaskDialog *dlg = Gui::Control().activeDialog();
-    if (dlg) {
-        if ( qobject_cast<PartDesignGui::TaskDlgFeaturePick *>(dlg) || dlg->canClose() ) {
-            // If we have another picker dialog we may safely close it.
-            // And ask the user if it is some other dialog.
-            Gui::Control().closeDialog();
-        } else {
-            return -1;
-        }
-    }
-
-    Gui::Selection().clearSelection();
-
-    return Gui::Control().showDialog(new PartDesignGui::TaskDlgFeaturePick ( picker ), /* sync = */ true);
+    Content.push_back ( new TaskFeaturePick ( picker, multiSelect) );
 }
 
 // TODO Rewright (2015-12-09, Fat-Zer)

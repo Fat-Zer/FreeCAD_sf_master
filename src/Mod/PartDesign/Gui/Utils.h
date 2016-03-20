@@ -36,6 +36,12 @@ namespace App {
     class Part;
 }
 
+namespace Gui {
+    namespace TaskView {
+        class TaskDialog;
+    }
+}
+
 namespace Sketcher {
     class SketchObject;
 }
@@ -63,6 +69,18 @@ bool isAnyNonPartDesignLinksTo ( PartDesign::Feature *feature, bool respectGroup
 
 /// Relink all nonPartDesign features to the body instead of the given partDesign Feature
 void relinkToBody ( PartDesign::Feature *feature );
+
+/**
+ * Checks wether there is a TaskDialog already running and shows a new one if Not.
+ * To delete the dialog after it's done is either a taskPanel's responsobility or the functions.
+ *
+ * @param dlg   the dialog to show
+ * @param sync  if true show a sync dislog and return only after the user agrees to accept or reject it
+ *
+ * @returns zero if the user accepts the dialog and nonzero if user either declined to closen
+ *          another dialog or aborted this one (if sync=true)
+ */
+int safeTaskDlgExecute ( Gui::TaskView::TaskDialog *dlg, bool sync=false );
 
 } /* PartDesignGui */
 

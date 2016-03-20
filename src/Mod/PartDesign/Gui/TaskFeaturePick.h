@@ -40,7 +40,7 @@ class TaskFeaturePick : public Gui::TaskView::TaskBox
 {
     Q_OBJECT
 public:
-     TaskFeaturePick(FeaturePicker *picker, QWidget *parent = 0);
+     TaskFeaturePick(FeaturePicker *picker, bool multiSelect=false, QWidget *parent = 0);
 
 // TODO Rewright (2015-12-09, Fat-Zer)
 //     std::vector<App::DocumentObject*> buildFeatures();
@@ -66,15 +66,7 @@ class TaskDlgFeaturePick : public Gui::TaskView::TaskDialog
 {
     Q_OBJECT
 public:
-    TaskDlgFeaturePick (FeaturePicker *picker);
-    /**
-     * Checks wether there is a TaskDialog already running and creates and shows a new one
-     * TaskDlgFeaturePick if not.
-     *
-     * @returns zero if the user accepts the dialog and nonzero if user either declined to close 
-     *          another dialog or aborted this one
-     */
-    static int safeExecute ( FeaturePicker *picker );
+    TaskDlgFeaturePick (FeaturePicker *picker, bool multiSelect=false);
 };
 
 }

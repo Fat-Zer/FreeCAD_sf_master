@@ -68,7 +68,7 @@ public:
      * @param parent      a Qt parent of the object
      * @param s_multiPick if true configure the picker to select multiple objects
      */
-    explicit FeaturePicker ( bool multiPick = false, QObject * parent = 0 );
+    explicit FeaturePicker ( QObject * parent = 0 );
 
     /**
      * Set a status of a feature and adds it to the picker
@@ -160,9 +160,7 @@ public:
 
     /// Set the features picked by the user
     void setPickedFeatures (const std::vector <App::DocumentObject *> & features) {
-        if ( multiPick && !features.empty() ) {
-            setPickedFeature (features.front());
-        } else if (features != pickedFeatures) {
+        if (features != pickedFeatures) {
             pickedFeatures = features;
             Q_EMIT pickedFeaturesChanged ();
         }
@@ -172,10 +170,6 @@ public:
     const std::vector <App::DocumentObject *>& getPickedFeatures () const {
         return pickedFeatures;
     }
-
-    /// Returns whether multiple feature picking is enabled
-    bool isMultiPick ()
-    { return multiPick; }
 Q_SIGNALS:
     /// Emmited after a feature status getting set
     void featureStatusSet (App::DocumentObject *, PartDesignGui::FeaturePicker::StatusSet);
@@ -191,8 +185,6 @@ private:
     std::map<App::DocumentObject *, StatusSet> statusMap;
 
     std::vector <App::DocumentObject *> pickedFeatures;
-
-    bool multiPick;
 };
 
 } /* PartDesignGui  */

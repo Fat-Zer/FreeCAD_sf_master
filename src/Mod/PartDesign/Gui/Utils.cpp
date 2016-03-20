@@ -34,6 +34,7 @@
 #include <App/DocumentObjectGroup.h>
 #include <Gui/Application.h>
 #include <Gui/Command.h>
+#include <Gui/Control.h>
 #include <Gui/MainWindow.h>
 #include <Gui/MDIView.h>
 #include <Gui/ViewProviderPart.h>
@@ -132,16 +133,17 @@ App::Part* getPartFor(const App::DocumentObject* obj, bool messageIfNot) {
     return nullptr;
 }
 
-static void buildDefaultPartAndBody(const App::Document* doc)
-{
-  // This adds both the base planes and the body
-    std::string PartName = doc->getUniqueObjectName("Part");
-    //// create a PartDesign Part for now, can be later any kind of Part or an empty one
-    Gui::Command::addModule(Gui::Command::Doc, "PartDesignGui");
-    Gui::Command::doCommand(Gui::Command::Doc, "App.activeDocument().Tip = App.activeDocument().addObject('App::Part','%s')", PartName.c_str());
-    Gui::Command::doCommand(Gui::Command::Doc, "PartDesignGui.setUpPart(App.activeDocument().%s)", PartName.c_str());
-    Gui::Command::doCommand(Gui::Command::Gui, "Gui.activeView().setActiveObject('Part',App.activeDocument().%s)", PartName.c_str());
-}
+// TODO Delete me if won't be used (2016-03-19, Fat-Zer)
+// static void buildDefaultPartAndBody(const App::Document* doc)
+// {
+//   // This adds both the base planes and the body
+//     std::string PartName = doc->getUniqueObjectName("Part");
+//     //// create a PartDesign Part for now, can be later any kind of Part or an empty one
+//     Gui::Command::addModule(Gui::Command::Doc, "PartDesignGui");
+//     Gui::Command::doCommand(Gui::Command::Doc, "App.activeDocument().Tip = App.activeDocument().addObject('App::Part','%s')", PartName.c_str());
+//     Gui::Command::doCommand(Gui::Command::Doc, "PartDesignGui.setUpPart(App.activeDocument().%s)", PartName.c_str());
+//     Gui::Command::doCommand(Gui::Command::Gui, "Gui.activeView().setActiveObject('Part',App.activeDocument().%s)", PartName.c_str());
+// }
 
 
 void fixSketchSupport (Sketcher::SketchObject* sketch)
@@ -339,6 +341,29 @@ void relinkToBody (PartDesign::Feature *feature) {
             }
         }
     }
+}
+
+int safeTaskDlgExecute ( Gui::TaskView::TaskDialog *dlg, bool sync ) {
+    Gui::TaskView::TaskDialog *runningDlg = Gui::Control().activeDialog();
+
+    assert (dlg);
+
+    if (runningDlg) {
+        if ( runningDlg->inherits (dlg->QObject::metaObject()->className() )
+             || runningDlg->canClose() )
+        {
+            // If we have another dialog of the same type we can close it
+            // And ask the user if it is some other dialog.
+            Gui::Control().closeDialog();
+        } else {
+            dlg->deleteLater ();
+            return -1;
+        }
+    }
+
+    assert (!Gui::Control().activeDialog());
+
+    return Gui::Control().showDialog (dlg, /* sync = */ sync);
 }
 
 } /* PartDesignGui */
