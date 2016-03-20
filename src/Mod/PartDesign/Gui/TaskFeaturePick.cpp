@@ -52,10 +52,14 @@ using namespace PartDesignGui;
  *                          TaskFeaturePick                           *
  **********************************************************************/
 
-TaskFeaturePick::TaskFeaturePick ( FeaturePicker *picker, bool multiSelect, QWidget *parent )
+TaskFeaturePick::TaskFeaturePick ( FeaturePicker *s_picker, bool s_multiSelect, QWidget *parent )
     : TaskBox ( Gui::BitmapFactory().pixmap("edit-select-box"),
-                QObject::tr("Select feature"), true, parent)
+                QObject::tr("Select feature"), true, parent), picker (s_picker), multiSelect (s_multiSelect)
 {
+    assert (picker);
+    errorLabel = new QLabel (this);
+    this->addWidget(errorLabel);
+
     // We need a separate container widget to add all controls to
     AbstractFeaturePickerWidget *pickWgt;
     if ( multiSelect ) {
@@ -66,15 +70,40 @@ TaskFeaturePick::TaskFeaturePick ( FeaturePicker *picker, bool multiSelect, QWid
     this->addWidget(pickWgt);
 }
 
-/*********************************************************************
- *                        TaskDlgFeaturePick                         *
- *********************************************************************/
+void TaskFeaturePick::setErrorMessage ( const QString & msg ) {
+    if ( !msg.isEmpty () ) {
+        errorLabel->setText ( QString::fromLatin1 ("<font color=\"red\">%1</font>").arg (msg) );
+    } else {
+        errorLabel->setText ( QString() );
+    }
+}
+
+
+/**********************************************************************
+ *                        TaskDlgFeaturePicker                        *
+ **********************************************************************/
 
 TaskDlgFeaturePick::TaskDlgFeaturePick ( FeaturePicker * picker, bool multiSelect )
-    : TaskDialog()
+    : TaskDialog(), taskPick (new TaskFeaturePick ( picker, multiSelect))
 {
-    Content.push_back ( new TaskFeaturePick ( picker, multiSelect) );
+    Content.push_back ( taskPick );
 }
+
+bool TaskDlgFeaturePick::accept () {
+    assert(taskPick);
+    if (taskPick->getPicker ()->getPickedFeatures ().empty ()) {
+        if (taskPick->isMultiselect ()) {
+            taskPick->setErrorMessage ( tr("Please select at least one feature.") );
+        } else {
+            taskPick->setErrorMessage ( tr("Please select a feature.") );
+        }
+        return false;
+    }
+
+    return true;
+}
+
+
 
 // TODO Rewright (2015-12-09, Fat-Zer)
 // TaskFeaturePick::TaskFeaturePick(std::vector<App::DocumentObject*>& objects,
@@ -331,32 +360,6 @@ TaskDlgFeaturePick::TaskDlgFeaturePick ( FeaturePicker * picker, bool multiSelec
 //     }
 //
 //     return copy;
-// }
-//
-// //**************************************************************************
-// //**************************************************************************
-// // TaskDialog
-// //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
-// TaskDlgFeaturePick::TaskDlgFeaturePick(std::vector<App::DocumentObject*> &objects,
-//                                         const std::vector<TaskFeaturePick::featureStatus> &status,
-//                                         boost::function<bool (std::vector<App::DocumentObject*>)> afunc,
-//                                         boost::function<void (std::vector<App::DocumentObject*>)> wfunc)
-//     : TaskDialog(), accepted(false)
-// {
-//     pick  = new TaskFeaturePick(objects, status);
-//     Content.push_back(pick);
-//
-//     acceptFunction = afunc;
-//     workFunction = wfunc;
-// }
-//
-// TaskDlgFeaturePick::~TaskDlgFeaturePick()
-// {
-//     //do the work now as before in accept() the dialog is still open, hence the work
-//     //function could not open annother dialog
-//     if(accepted)
-//         workFunction(pick->buildFeatures());
 // }
 
 #include "moc_TaskFeaturePick.cpp"

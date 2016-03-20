@@ -35,13 +35,31 @@ namespace PartDesignGui {
 
 class FeaturePicker;
 
-/// A task for use in the associated dialog
+/**
+ * A task for selecting a feature closely related to FeaturePicker and TaskDlgFeaturePick
+ */
 class TaskFeaturePick : public Gui::TaskView::TaskBox
 {
     Q_OBJECT
 public:
-     TaskFeaturePick(FeaturePicker *picker, bool multiSelect=false, QWidget *parent = 0);
+    /**
+     * A constructor
+     * @param picker      the feature picker associated with dialog (couldn't be nullptr)
+     * @param multiSelect if true than create a task with FeaturePickerDoublePanelWidget as central widget
+     *                    otherwise create a FeaturePickerSinglePanelWidget, default is false
+     * @param parent      a parent widget passed (as in QWidget())
+     */
+    TaskFeaturePick(FeaturePicker *picker, bool multiSelect=false, QWidget *parent = 0);
 
+    /// Return true if the task was created for multisection of features
+    bool isMultiselect() const
+        { return multiSelect; }
+
+    /// Returns the FeaturePicker associated with the task
+    FeaturePicker *getPicker() const
+        { return picker; }
+
+    void setErrorMessage (const QString & str);
 // TODO Rewright (2015-12-09, Fat-Zer)
 //     std::vector<App::DocumentObject*> buildFeatures();
 //     void showExternal(bool val);
@@ -52,21 +70,34 @@ public:
 //     void onUpdate(bool);
 //
 // private:
-//     Ui_TaskFeaturePick* ui;
-//     QWidget* proxy;
 //     SoSwitch* featureswitch;
 //     std::vector<Gui::ViewProviderOrigin*> origins;
 //
 //     void updateList();
+private:
+    QLabel *errorLabel;
+    FeaturePicker *picker;
+    const bool multiSelect;
 };
 
 
-/// simulation dialog for the TaskView
+/**
+ * A task dialog for selecting a feature to use for some operation.
+ *
+ * @note: This dialog should be likely run in sync mode (@see Gui::Control::showDialog) due to it doesn't
+ * do anything useful due either accept() or reject() but asserting that the selection is not empty.
+ */
 class TaskDlgFeaturePick : public Gui::TaskView::TaskDialog
 {
     Q_OBJECT
 public:
     TaskDlgFeaturePick (FeaturePicker *picker, bool multiSelect=false);
+
+    /// is called by the framework if the dialog is accepted (Ok)
+    virtual bool accept();
+
+private:
+    TaskFeaturePick *taskPick;
 };
 
 }
