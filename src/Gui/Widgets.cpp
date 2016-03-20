@@ -41,6 +41,7 @@
 
 #include <Base/Exception.h>
 #include <Base/Interpreter.h>
+#include <Base/Console.h>
 
 #include "Widgets.h"
 #include "Application.h"
@@ -158,6 +159,7 @@ ActionSelector::ActionSelector(QWidget* parent)
     availableWidget->setRootIsDecorated(false);
     availableWidget->setHeaderLabels(QStringList() << QString());
     availableWidget->header()->hide();
+    availableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
     vboxLayout->addWidget(availableWidget);
 
     gridLayout->addLayout(vboxLayout, 0, 0, 6, 1);
@@ -172,6 +174,7 @@ ActionSelector::ActionSelector(QWidget* parent)
     selectedWidget->setRootIsDecorated(false);
     selectedWidget->setHeaderLabels(QStringList() << QString());
     selectedWidget->header()->hide();
+    selectedWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
     vboxLayout1->addWidget(selectedWidget);
 
     gridLayout->addLayout(vboxLayout1, 0, 2, 6, 1);
@@ -190,15 +193,15 @@ ActionSelector::ActionSelector(QWidget* parent)
     connect(downButton, SIGNAL(clicked()),
             this, SLOT(on_downButton_clicked()) );
     connect(availableWidget, SIGNAL(itemDoubleClicked(QTreeWidgetItem*,int)),
-            this, SLOT(onItemDoubleClicked(QTreeWidgetItem*,int)) );
+            this, SLOT(selectItem(QTreeWidgetItem*)) );
     connect(selectedWidget, SIGNAL(itemDoubleClicked(QTreeWidgetItem*,int)),
-            this, SLOT(onItemDoubleClicked(QTreeWidgetItem*,int)) );
-    connect(availableWidget, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem *)),
-            this, SLOT(onCurrentItemChanged(QTreeWidgetItem *,QTreeWidgetItem *)) );
-    connect(selectedWidget, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem *)),
-            this, SLOT(onCurrentItemChanged(QTreeWidgetItem *,QTreeWidgetItem *)) );
+            this, SLOT(unselectItem(QTreeWidgetItem*)) );
+    connect(availableWidget, SIGNAL(itemSelectionChanged()),
+            this, SLOT(updateButtonsState()) );
+    connect(selectedWidget, SIGNAL(itemSelectionChanged()),
+            this, SLOT(updateButtonsState()) );
     retranslateUi();
-    setButtonsEnabled();
+    updateButtonsState();
 }
 
 ActionSelector::~ActionSelector()
@@ -226,31 +229,39 @@ QString ActionSelector::availableLabel() const
 }
 
 void ActionSelector::selectItem (int index) {
-    if (index<0 || index >= selectedWidget->topLevelItemCount () ) {
-        return;
-    }
-    moveTreeWidgetItem (selectedWidget, availableWidget, index);
-}
-
-void ActionSelector::selectItem (QTreeWidgetItem *item) {
-    if (item->treeWidget () != selectedWidget ) {
-        return;
-    }
-    moveTreeWidgetItem (selectedWidget, item);
-}
-
-void ActionSelector::unselectItem (int index) {
     if (index<0 || index >= availableWidget->topLevelItemCount () ) {
         return;
     }
-    moveTreeWidgetItem (availableWidget, selectedWidget, index);
+    moveTreeWidgetItem (selectedWidget, availableWidget, index);
+
+    Q_EMIT selectionChanged();
 }
 
-void ActionSelector::unselectItem (QTreeWidgetItem *item) {
+void ActionSelector::selectItem (QTreeWidgetItem *item) {
     if (item->treeWidget () != availableWidget ) {
         return;
     }
+    moveTreeWidgetItem (selectedWidget, item);
+
+    Q_EMIT selectionChanged();
+}
+
+void ActionSelector::unselectItem (int index) {
+    if (index<0 || index >= selectedWidget->topLevelItemCount () ) {
+        return;
+    }
+    moveTreeWidgetItem (availableWidget, selectedWidget, index);
+
+    Q_EMIT selectionChanged();
+}
+
+void ActionSelector::unselectItem (QTreeWidgetItem *item) {
+    if (item->treeWidget () != selectedWidget ) {
+        return;
+    }
     moveTreeWidgetItem (availableWidget, item);
+
+    Q_EMIT selectionChanged();
 }
 
 inline void ActionSelector::moveTreeWidgetItem (QTreeWidget *to, QTreeWidgetItem *item) {
@@ -262,7 +273,6 @@ inline void ActionSelector::moveTreeWidgetItem (QTreeWidget *to, QTreeWidget *fr
     QTreeWidgetItem *item = from->takeTopLevelItem(fromIndex);
     assert (item);
     to->addTopLevelItem(item);
-    to->setCurrentItem(item);
 }
 
 void ActionSelector::retranslateUi()
@@ -307,77 +317,124 @@ void ActionSelector::keyPressEvent(QKeyEvent* event)
     }
 }
 
-void ActionSelector::setButtonsEnabled()
+void ActionSelector::updateButtonsState()
 {
-    addButton->setEnabled(availableWidget->indexOfTopLevelItem(availableWidget->currentItem()) > -1);
-    removeButton->setEnabled(selectedWidget->indexOfTopLevelItem(selectedWidget->currentItem()) > -1);
-    upButton->setEnabled(selectedWidget->indexOfTopLevelItem(selectedWidget->currentItem()) > 0);
-    downButton->setEnabled(selectedWidget->indexOfTopLevelItem(selectedWidget->currentItem()) > -1 &&
-                           selectedWidget->indexOfTopLevelItem(selectedWidget->currentItem()) < selectedWidget->topLevelItemCount() - 1);
-}
+    auto availableSelection = availableWidget->selectedItems();
+    auto selectedSelection = selectedWidget->selectedItems();
+    addButton->setEnabled(!availableSelection.empty());
+    removeButton->setEnabled(!selectedSelection.empty());
 
-void ActionSelector::onCurrentItemChanged(QTreeWidgetItem*, QTreeWidgetItem*)
-{
-    setButtonsEnabled();
-}
-
-void ActionSelector::onItemDoubleClicked(QTreeWidgetItem * item, int column)
-{
-    QTreeWidget* treeWidget = item->treeWidget();
-    if (treeWidget == availableWidget) {
-        int index = availableWidget->indexOfTopLevelItem(item);
-        item = availableWidget->takeTopLevelItem(index);
-        availableWidget->setCurrentItem(0);
-        selectedWidget->addTopLevelItem(item);
-        selectedWidget->setCurrentItem(item);
-    }
-    else if (treeWidget == selectedWidget) {
-        int index = selectedWidget->indexOfTopLevelItem(item);
-        item = selectedWidget->takeTopLevelItem(index);
-        selectedWidget->setCurrentItem(0);
-        availableWidget->addTopLevelItem(item);
-        availableWidget->setCurrentItem(item);
+    if (selectedSelection.empty() || selectedSelection.size() == selectedWidget->topLevelItemCount()) {
+        upButton->setEnabled(false);
+        downButton->setEnabled(false);
+    } else if (selectedSelection.size() == 1) {
+        int index = selectedWidget->indexOfTopLevelItem(selectedSelection.front ());
+        upButton->setEnabled( index != 0 );
+        downButton->setEnabled( index != selectedWidget->topLevelItemCount() - 1 );
+    } else {
+        // find min & max index; Note: no stl minmax_element here because of performance concerns
+        int indexSelectedMin = selectedWidget->indexOfTopLevelItem(selectedSelection.front ());
+        int indexSelectedMax = indexSelectedMin;
+        for (auto itemIt = ++selectedSelection.begin(); itemIt != selectedSelection.end (); ++itemIt) {
+            int index = selectedWidget->indexOfTopLevelItem(*itemIt);
+             if (index<indexSelectedMin) {indexSelectedMin=index;
+             } else if (index>indexSelectedMax) {indexSelectedMax=index;}
+        }
+        // test if selection is consequtive from start or end of the widget
+        upButton->setEnabled( indexSelectedMin != 0 ||
+                              indexSelectedMax - indexSelectedMin > selectedSelection.size() -1 );
+        downButton->setEnabled( indexSelectedMax != selectedWidget->topLevelItemCount() - 1 ||
+                                indexSelectedMax - indexSelectedMin > selectedSelection.size() -1 );
     }
 }
 
 void ActionSelector::on_addButton_clicked()
 {
-    QTreeWidgetItem* item = availableWidget->currentItem();
-    if (item) {
-        moveTreeWidgetItem (selectedWidget, item);
+    auto selection = availableWidget->selectedItems();
+    if (!selection.empty()) {
+        selectedWidget->clearSelection();
+        for (QTreeWidgetItem *item: selection) {
+            selectItem ( item );
+            item->setSelected(true);
+        }
+        availableWidget->setCurrentItem(availableWidget->topLevelItem(0));
+    } else {
+        Base::Console().Error("ActionSelector: add button was clicked with empty selection\n");
     }
 }
 
 void ActionSelector::on_removeButton_clicked()
 {
-    QTreeWidgetItem* item = selectedWidget->currentItem();
-    if (item) {
-        moveTreeWidgetItem (availableWidget, item);
+    auto selection = selectedWidget->selectedItems();
+    if (!selection.empty()) {
+        availableWidget->clearSelection();
+        for (QTreeWidgetItem *item: selection) {
+            unselectItem ( item );
+            item->setSelected(true);
+        }
+        selectedWidget->setCurrentItem(selectedWidget->topLevelItem(0));
+    } else {
+        Base::Console().Error("ActionSelector: remove button was clicked with empty selection\n");
     }
+
 }
 
 void ActionSelector::on_upButton_clicked()
 {
-    QTreeWidgetItem* item = selectedWidget->currentItem();
-    if (item && selectedWidget->isItemSelected(item)) {
+    std::set<int> indexSelection;
+    for (QTreeWidgetItem *item: selectedWidget->selectedItems ()) {
         int index = selectedWidget->indexOfTopLevelItem(item);
-        if (index > 0) {
-            selectedWidget->takeTopLevelItem(index);
-            selectedWidget->insertTopLevelItem(index-1, item);
-            selectedWidget->setCurrentItem(item);
+        assert (index >= 0);
+        indexSelection.insert(index);
+    }
+
+    if (!indexSelection.empty()) {
+        auto indexIt = indexSelection.begin();
+
+        if (*indexIt == 0) {
+            // Find first non ordered index
+            ++indexIt;
+            for (int skippedCount = 1; indexIt != indexSelection.end(); ++indexIt, ++skippedCount ) {
+                if (*indexIt != skippedCount) {
+                    break;
+                }
+            }
+        }
+
+        for (/*itemIt*/; indexIt != indexSelection.end(); ++indexIt ) {
+            QTreeWidgetItem *item = selectedWidget->takeTopLevelItem(*indexIt);
+            selectedWidget->insertTopLevelItem(*indexIt - 1, item);
+            selectedWidget->setItemSelected(item, true);
         }
     }
 }
 
 void ActionSelector::on_downButton_clicked()
 {
-    QTreeWidgetItem* item = selectedWidget->currentItem();
-    if (item && selectedWidget->isItemSelected(item)) {
+    std::set<int> indexSelection;
+    for (QTreeWidgetItem *item: selectedWidget->selectedItems ()) {
         int index = selectedWidget->indexOfTopLevelItem(item);
-        if (index < selectedWidget->topLevelItemCount()-1) {
-            selectedWidget->takeTopLevelItem(index);
-            selectedWidget->insertTopLevelItem(index+1, item);
-            selectedWidget->setCurrentItem(item);
+        assert (index >= 0);
+        indexSelection.insert(index);
+    }
+
+    if (!indexSelection.empty()) {
+        auto indexIt = indexSelection.rbegin();
+
+        if (*indexIt ==  selectedWidget->topLevelItemCount() - 1) {
+            // Find first non ordered index
+            ++indexIt;
+            for (int skippedCount = 1; indexIt != indexSelection.rend(); ++indexIt, ++skippedCount ) {
+                if (*indexIt != selectedWidget->topLevelItemCount() - 1 - skippedCount) {
+                    break;
+                }
+            }
+        }
+
+        for (/*itemIt*/; indexIt != indexSelection.rend(); ++indexIt ) {
+            QTreeWidgetItem *item = selectedWidget->takeTopLevelItem(*indexIt);
+            selectedWidget->insertTopLevelItem(*indexIt + 1, item);
+            selectedWidget->setItemSelected(item, true);
         }
     }
 }

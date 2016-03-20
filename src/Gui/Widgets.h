@@ -82,6 +82,7 @@ public:
     void setAvailableLabel(const QString&);
     QString availableLabel() const;
 
+public Q_SLOTS:
     /// Moves the item with given index in avaliableTreeWidget to selectedTreeWidget
     void selectItem ( int index );
     /// Moves the given item from avalibleTreeWidget to selectedTreeWidget
@@ -91,11 +92,16 @@ public:
     /// Moves the given item from selectedTreeWidget to avalibleTreeWidget
     void unselectItem ( QTreeWidgetItem *item );
 
+Q_SIGNALS:
+    /// The signal is emited whenever an item is getting selected or unselected
+    void selectionChanged();
+    /// The signal is thrown when items getting reordered
+    void selectionReordered();
+
 private:
     void keyPressEvent(QKeyEvent *);
     void changeEvent(QEvent*);
     void retranslateUi();
-    void setButtonsEnabled();
     static inline void moveTreeWidgetItem (QTreeWidget *to, QTreeWidget *from, int fromIndex);
     static inline void moveTreeWidgetItem (QTreeWidget *to, QTreeWidgetItem *item);
 
@@ -104,8 +110,8 @@ private Q_SLOTS:
     void on_removeButton_clicked();
     void on_upButton_clicked();
     void on_downButton_clicked();
-    void onCurrentItemChanged(QTreeWidgetItem*, QTreeWidgetItem*);
-    void onItemDoubleClicked(QTreeWidgetItem * item, int column);
+    /// Update the buttons state (enabled/disabled) according to current items in treeViews
+    void updateButtonsState();
 
 private:
     QGridLayout *gridLayout;
