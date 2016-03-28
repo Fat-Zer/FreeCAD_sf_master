@@ -971,7 +971,11 @@ void DocumentItem::slotChangeObject(const Gui::ViewProviderDocumentObject& view)
             DocumentObjectItem* parent_of_group = it->second;
             std::set<QTreeWidgetItem*> children;
             std::vector<App::DocumentObject*> group = view.claimChildren();
-                int group_index = 0; // counter of children inserted to the tree
+
+            int group_index = 0; // counter of children inserted to the tree
+            // Block signals to not to trigger selection engine more than needed
+            bool blocked = treeWidget ()->blockSignals (true);
+
             for (std::vector<App::DocumentObject*>::iterator jt = group.begin(); jt != group.end(); ++jt) {
                 if ((*jt) && view.getObject()->getDocument()->isIn(*jt)){
                     // Note: It is possible that we receive an invalid pointer from claimChildren(), e.g. if multiple properties
@@ -984,10 +988,12 @@ void DocumentItem::slotChangeObject(const Gui::ViewProviderDocumentObject& view)
                         std::map<std::string, DocumentObjectItem*>::iterator kt = ObjectMap.find(internalName);
                         if (kt != ObjectMap.end()) {
                             DocumentObjectItem* child_of_group = kt->second;
+
                             children.insert(child_of_group);
                             QTreeWidgetItem* parent_of_child = child_of_group->parent();
 
                             if (parent_of_child) {
+                                bool selected = child_of_group->isSelected (); //< keep the item selection
                                 if (parent_of_child != parent_of_group) {
                                     if (parent_of_group != child_of_group) {
                                         // This child's parent must be adjusted
@@ -1006,11 +1012,12 @@ void DocumentItem::slotChangeObject(const Gui::ViewProviderDocumentObject& view)
                                     // The child already in the right group, but we may need to ajust it's index to follow the order of claimChildren
                                     int index=parent_of_group->indexOfChild (child_of_group);
                                     if (index>group_index) {
-                                         parent_of_group->takeChild (index);
-                                         parent_of_group->insertChild (group_index, child_of_group);
+                                        parent_of_group->takeChild (index);
+                                        parent_of_group->insertChild (group_index, child_of_group);
                                     }
                                     group_index++;
                                 }
+                                child_of_group->setSelected (selected);
                             } else {
                                 Base::Console().Warning("Gui::DocumentItem::slotChangedObject(): "
                                     "'%s' claimed a top level object '%s' to be it's child.\n", objectName.c_str(), internalName);
@@ -1031,10 +1038,14 @@ void DocumentItem::slotChangeObject(const Gui::ViewProviderDocumentObject& view)
             for (int i=0; i < count; i++) {
                 QTreeWidgetItem* child = parent_of_group->child(i);
                 if (children.find(child) == children.end()) {
+                    bool selected = child->isSelected (); //< keep the item selection
                     parent_of_group->takeChild(i);
                     this->addChild(child);
+                    child->setSelected (selected);
                 }
             }
+
+            treeWidget ()->blockSignals (blocked);
 
             // set the text label
             std::string displayName = obj->Label.getValue();
