@@ -85,6 +85,7 @@ public:
     /** @name task view handling
      */
     //@{
+    /// returns the task panel
     Gui::TaskView::TaskView* taskPanel() const;
     /// raising the model view
     void showModelView();
@@ -110,17 +111,12 @@ private Q_SLOTS:
     void finishSyncDialog (int status);
 
 private:
-    Gui::TaskView::TaskView *getTaskPanel();
-
-private:
     // TODO this seems doesn't used (may be delete?) (2015-12-22, Fat-Zer)
     struct status {
         std::bitset<32> StatusBits;
     } CurrentStatus;
 
     std::stack<status> StatusStack;
-
-    Gui::TaskView::TaskDialog *ActiveDialog;
 
     QPointer <QEventLoop> syncDialogLoop;
     int syncDialogRC;

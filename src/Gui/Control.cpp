@@ -49,7 +49,7 @@ ControlSingleton* ControlSingleton::_pcSingleton = 0;
 static QPointer<Gui::TaskView::TaskView> _taskPanel = 0;
 
 ControlSingleton::ControlSingleton()
-  : ActiveDialog(0), syncDialogLoop(0)
+  : syncDialogLoop(0)
 {
 
 }
@@ -69,11 +69,8 @@ Gui::TaskView::TaskView* ControlSingleton::taskPanel() const
     if (pcCombiView)
         return pcCombiView->getTaskPanel();
     // not all workbenches have the combo view enabled
-    else if (_taskPanel)
-        return _taskPanel;
-    // no task panel available
     else
-        return 0;
+        return _taskPanel; //< either the non combo view task panel or no task panel available at all
 }
 
 void ControlSingleton::showTaskView()
@@ -99,9 +96,10 @@ void ControlSingleton::showModelView()
 int ControlSingleton::showDialog(Gui::TaskView::TaskDialog *dlg, bool sync)
 {
     int rv = 0;
+    auto activeDlg = activeDialog ();
 
     // only one dialog at a time, print a warning instead of raising an assert
-    if (ActiveDialog && ActiveDialog != dlg) {
+    if (activeDlg && activeDlg == dlg) {
         if (dlg) {
             qWarning() << "ControlSingleton::showDialog: Can't show "
                        << dlg->metaObject()->className()
@@ -125,9 +123,9 @@ int ControlSingleton::showDialog(Gui::TaskView::TaskDialog *dlg, bool sync)
             dw->setFeatures(QDockWidget::DockWidgetMovable|QDockWidget::DockWidgetFloatable);
         }
 
-        if (ActiveDialog == dlg)
+        if (activeDlg == dlg)
             return -1; // dialog is already defined
-        ActiveDialog = dlg;
+        activeDlg = dlg;
         connect ( pcCombiView->getTaskPanel (), SIGNAL(dialogFinished(int)), this, SLOT(closedDialog()) );
     }
     // not all workbenches have the combo view enabled
@@ -161,10 +159,10 @@ int ControlSingleton::showDialog(Gui::TaskView::TaskDialog *dlg, bool sync)
         // We cannot rely on event loop return code due to QEventDialog::exit () may be called 
         // from QCoreApplication::exit (); so introduce yet another variable
         syncDialogRC = -1;
-        connect(getTaskPanel (), SIGNAL(dialogFinished(int)), this, SLOT (finishSyncDialog(int)) );
+        connect(taskPanel (), SIGNAL(dialogFinished(int)), this, SLOT (finishSyncDialog(int)) );
         syncDialogLoop->exec ();
         rv = syncDialogRC;
-        disconnect(getTaskPanel (), SIGNAL(dialogFinished(int)), this, SLOT (finishSyncDialog(int)) );
+        disconnect(taskPanel (), SIGNAL(dialogFinished(int)), this, SLOT (finishSyncDialog(int)) );
     }
 
     return rv;
@@ -182,25 +180,15 @@ QTabWidget* ControlSingleton::tabPanel() const
 
 Gui::TaskView::TaskDialog* ControlSingleton::activeDialog() const
 {
-    return ActiveDialog;
-}
-
-Gui::TaskView::TaskView* ControlSingleton::getTaskPanel()
-{
-    // should return the pointer to combo view
-    Gui::DockWnd::CombiView* pcCombiView = qobject_cast<Gui::DockWnd::CombiView*>
-        (Gui::DockWindowManager::instance()->getDockWindow("Combo View"));
-    if (pcCombiView)
-        return pcCombiView->getTaskPanel();
-    else
-        return _taskPanel;
+    Gui::TaskView::TaskView* taskPnl = taskPanel();
+    return taskPnl ? taskPnl->getActiveDialog() : nullptr;
 }
 
 void ControlSingleton::accept()
 {
-    Gui::TaskView::TaskView* taskPanel = getTaskPanel();
-    if (taskPanel) {
-        taskPanel->accept();
+    Gui::TaskView::TaskView* taskPnl = taskPanel();
+    if (taskPnl) {
+        taskPnl->accept();
         qApp->processEvents(QEventLoop::ExcludeUserInputEvents |
                             QEventLoop::ExcludeSocketNotifiers);
     }
@@ -208,9 +196,9 @@ void ControlSingleton::accept()
 
 void ControlSingleton::reject()
 {
-    Gui::TaskView::TaskView* taskPanel = getTaskPanel();
-    if (taskPanel) {
-        taskPanel->reject();
+    Gui::TaskView::TaskView* taskPnl = taskPanel();
+    if (taskPnl) {
+        taskPnl->reject();
         qApp->processEvents(QEventLoop::ExcludeUserInputEvents |
                             QEventLoop::ExcludeSocketNotifiers);
     }
@@ -218,13 +206,12 @@ void ControlSingleton::reject()
 
 void ControlSingleton::closeDialog()
 {
-    Gui::DockWnd::CombiView* pcCombiView = qobject_cast<Gui::DockWnd::CombiView*>
-        (Gui::DockWindowManager::instance()->getDockWindow("Combo View"));
-    // should return the pointer to combo view
-    if (pcCombiView)
-        pcCombiView->closeDialog();
-    else if (_taskPanel)
-        _taskPanel->removeDialog();
+    Gui::TaskView::TaskView* taskPnl = taskPanel();
+    if (taskPnl) {
+        taskPnl->closeDialog();
+        qApp->processEvents(QEventLoop::ExcludeUserInputEvents |
+                            QEventLoop::ExcludeSocketNotifiers);
+    }
 }
 
 void ControlSingleton::finishSyncDialog(int status)
@@ -239,7 +226,6 @@ void ControlSingleton::finishSyncDialog(int status)
 
 void ControlSingleton::closedDialog()
 {
-    ActiveDialog = 0;
     Gui::DockWnd::CombiView* pcCombiView = qobject_cast<Gui::DockWnd::CombiView*>
         (Gui::DockWindowManager::instance()->getDockWindow("Combo View"));
     // should return the pointer to combo view
@@ -253,24 +239,30 @@ void ControlSingleton::closedDialog()
 
 bool ControlSingleton::isAllowedAlterDocument(void) const
 {
-    if (ActiveDialog)
-        return ActiveDialog->isAllowedAlterDocument();
-    return true;
+    TaskView::TaskDialog* activeDlg = activeDialog ();
+    if (activeDlg)
+        return activeDlg->isAllowedAlterDocument();
+    else
+        return true;
 }
 
 
 bool ControlSingleton::isAllowedAlterView(void) const
 {
-    if (ActiveDialog)
-        return ActiveDialog->isAllowedAlterView();
-    return true;
+    TaskView::TaskDialog* activeDlg = activeDialog ();
+    if (activeDlg)
+        return activeDlg->isAllowedAlterView();
+    else
+        return true;
 }
 
 bool ControlSingleton::isAllowedAlterSelection(void) const
 {
-    if (ActiveDialog)
-        return ActiveDialog->isAllowedAlterSelection();
-    return true;
+    TaskView::TaskDialog* activeDlg = activeDialog ();
+    if (activeDlg)
+        return activeDlg->isAllowedAlterSelection();
+    else
+        return true;
 }
 
 // -------------------------------------------

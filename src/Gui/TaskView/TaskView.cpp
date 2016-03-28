@@ -707,6 +707,12 @@ void TaskView::reject()
     }
 }
 
+void TaskView::closeDialog()
+{
+    Q_EMIT dialogFinished(dialogClosed);
+    removeDialog();
+}
+
 void TaskView::helpRequested()
 {
     ActiveDialog->helpRequested();

@@ -24,13 +24,17 @@
 #define GUI_TEXTUREMAPPING_H
 
 #include <Gui/TaskView/TaskDialog.h>
-#include <Gui/TaskView/TaskView.h>
 
 class SoGroup;
 class SoTexture2;
 class SoTextureCoordinateEnvironment;
 
 namespace Gui {
+
+namespace TaskView {
+    class TaskBox;
+}
+
 namespace Dialog {
 
 class Ui_TextureMapping;

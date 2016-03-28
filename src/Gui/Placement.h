@@ -25,7 +25,6 @@
 
 #include <Gui/InputVector.h>
 #include <Gui/TaskView/TaskDialog.h>
-#include <Gui/TaskView/TaskView.h>
 #include <Base/Placement.h>
 
 #include <boost/signals.hpp>
@@ -34,6 +33,11 @@
 class QSignalMapper;
 
 namespace Gui {
+
+namespace TaskView {
+    class TaskBox;
+}
+
 class Document;
 
 namespace Dialog {

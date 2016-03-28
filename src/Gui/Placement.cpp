@@ -27,6 +27,7 @@
 #include <QMessageBox>
 
 #include "Placement.h"
+#include "TaskView/TaskView.h"
 #include "ui_Placement.h"
 #include <Gui/DockWindowManager.h>
 #include <Gui/Application.h>

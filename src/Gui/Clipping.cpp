@@ -36,6 +36,7 @@
 #include "Application.h"
 #include "View3DInventor.h"
 #include "View3DInventorViewer.h"
+#include "TaskView/TaskView.h"
 
 using namespace Gui::Dialog;
 

@@ -26,11 +26,15 @@
 #include <Gui/InputVector.h>
 #include <Gui/Selection.h>
 #include <Gui/TaskView/TaskDialog.h>
-#include <Gui/TaskView/TaskView.h>
 #include <Base/Placement.h>
 #include <set>
 
 namespace Gui {
+
+namespace TaskView {
+    class TaskBox;
+}
+
 namespace Dialog {
 
 class GuiExport TransformStrategy

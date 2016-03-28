@@ -32,6 +32,7 @@
 #include "Application.h"
 #include "Document.h"
 #include "WaitCursor.h"
+#include "TaskView/TaskView.h"
 #include <App/PropertyGeo.h>
 #include <App/DocumentObject.h>
 

@@ -25,7 +25,6 @@
 #define GUI_DIALOG_CLIPPING_H
 
 #include <Gui/TaskView/TaskDialog.h>
-#include <Gui/TaskView/TaskView.h>
 #include <QWidget>
 
 namespace Gui {
@@ -60,8 +59,6 @@ protected Q_SLOTS:
     void on_dirX_valueChanged(double);
     void on_dirY_valueChanged(double);
     void on_dirZ_valueChanged(double);
-
-private:
 
 private:
     class Private;

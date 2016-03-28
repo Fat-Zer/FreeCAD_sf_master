@@ -180,20 +180,26 @@ public:
     virtual void OnChange(Gui::SelectionSingleton::SubjectType &rCaller,
                           Gui::SelectionSingleton::MessageType Reason);
 
-    friend class Gui::DockWnd::CombiView;
-    friend class Gui::ControlSingleton;
-
     void addTaskWatcher(const std::vector<TaskWatcher*> &Watcher);
     void clearTaskWatcher(void);
 
     void clearActionStyle();
     void restoreActionStyle();
 
+    /// Returns the currently active dialog on the task panel
+    TaskDialog* getActiveDialog () {
+        return ActiveDialog;
+    }
+
     /// The status intended to be passed to dialogFinished () signal
     enum DialogFinishStatus{
         dialogAccepted = 0, ///< Dialog was accepted
-        dialogRejected      ///< Dialog was rejected
+        dialogRejected,     ///< Dialog was rejected
+        dialogClosed        ///< Dialog was closed by the control singleton
     };
+
+    /// used by Gui::Contol to register Dialogs
+    void showDialog(TaskDialog *dlg);
 
 Q_SIGNALS:
     /**
@@ -201,9 +207,12 @@ Q_SIGNALS:
      * @param status is zero or DialogAccepted if the dialog was accepted and Dialog rejected othervice
      */
     void dialogFinished(int status);
-protected Q_SLOTS:
+
+public Q_SLOTS:
     void accept();
     void reject();
+    /// Unconditionally close the dialog
+    void closeDialog();
     void helpRequested();
     void clicked (QAbstractButton * button);
 
@@ -213,8 +222,6 @@ protected:
     void removeTaskWatcher(void);
     /// update the visibility of the TaskWatcher accordant to the selection
     void updateWatcher(void);
-    /// used by Gui::Contol to register Dialogs
-    void showDialog(TaskDialog *dlg);
     // removes the running dialog after accept() or reject() from the TaskView
     void removeDialog(void);
 
