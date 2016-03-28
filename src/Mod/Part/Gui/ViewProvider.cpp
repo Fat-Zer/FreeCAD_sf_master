@@ -79,7 +79,7 @@ void ViewProviderPart::applyColor(const Part::ShapeHistory& hist,
 }
 
 // ----------------------------------------------------------------------------
-
+// TODO What the heck is this? (2015-12-07, Fat-Zer)
 void ViewProviderShapeBuilder::buildNodes(const App::Property* prop, std::vector<SoNode*>& nodes) const
 {
 }

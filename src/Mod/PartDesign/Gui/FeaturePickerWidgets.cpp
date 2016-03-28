@@ -56,24 +56,20 @@ using namespace PartDesignGui;
 
 AbstractFeaturePickerWidget::AbstractFeaturePickerWidget (
         FeaturePicker *picker_s, QWidget *parent )
-: QWidget(parent), picker (picker_s)
+: QWidget(parent), picker (nullptr)
 {
-    assert (picker);
-
     visability [ FeaturePicker::validFeature ]    = true;
     // Due to external features are additionally constrained, enable them by default
     visability [ FeaturePicker::isExternal   ]    = true;
     visability [ FeaturePicker::basePlane    ]    = true;
-//    visability [ userSelected ]    = true;
+    visability [ FeaturePicker::userSelected ]    = true;
 
     QBoxLayout *mainLayout = new QHBoxLayout (this);
 
     QBoxLayout * pbLayout = new QVBoxLayout;
 
-    auto existingStatuses = picker->getFeatureStatusMask ( );
-
     // A commone code for adding a toolButton
-    auto addToolButton = [this, pbLayout, existingStatuses] (
+    auto addToolButton = [this, pbLayout] (
             FeaturePicker::FeatureStatus status, const char * icon, const QString & toolTip ) -> QToolButton *
     {
         QToolButton *btn = new QToolButton (this);
@@ -82,7 +78,6 @@ AbstractFeaturePickerWidget::AbstractFeaturePickerWidget (
         btn->setToolTip (toolTip);
         btn->setCheckable (true);
         btn->setChecked ( this->isVisible (status) );
-        btn->setDisabled ( !existingStatuses[status] );
         pbLayout->addWidget (btn);
         this->controlButtons.insert ( ButtonsBimap::value_type ( status , btn ) );
         connect (btn, SIGNAL (clicked (bool) ), this, SLOT( onStateButtonClicked (bool) ) );
@@ -108,6 +103,25 @@ AbstractFeaturePickerWidget::AbstractFeaturePickerWidget (
 
     // TODO Save/load last visability states (2016-03-09, Fat-Zer)
     connect ( this, SIGNAL ( selectionChanged () ), this, SLOT ( updatePickedFeatures () ) );
+
+    if (picker_s) {
+        setPicker (picker_s);
+    }
+}
+
+void AbstractFeaturePickerWidget::setPicker ( FeaturePicker *s_picker) {
+    assert (s_picker);
+
+    if (picker) {
+        if (s_picker != picker) {
+            Base::Console ().Error (
+                    "AbstractFeaturePickerWidget: trying to set a picker then one already set\n");
+        }
+        return;
+    }
+
+    picker = s_picker;
+
     connect ( picker, SIGNAL ( pickedFeaturesChanged () ), this, SLOT (updateUi () ) );
     connect ( picker, SIGNAL ( featureStatusSet ( App::DocumentObject *,
                                                   PartDesignGui::FeaturePicker::StatusSet ) ),
@@ -115,7 +129,9 @@ AbstractFeaturePickerWidget::AbstractFeaturePickerWidget (
     connect ( picker, SIGNAL ( featureStatusSet ( App::DocumentObject *,
                                                   PartDesignGui::FeaturePicker::StatusSet ) ),
               this, SLOT ( updateUi () ) );
+
     updateSortedFeatures ();
+    updateUi (); //< note: will call AbstractFeaturePickerWidget::updateUi then called from constructor
 }
 
 AbstractFeaturePickerWidget::~AbstractFeaturePickerWidget () {
@@ -325,11 +341,11 @@ void TreeWidgetBasedFeaturePickerWidget::update3dSelection () {
         QTreeWidgetItem *item = featItem.second;
         if (item->isSelected ()) {
             if ( ! Gui::Selection ().isSelected (feat) ) {
-                Gui::Selection().addSelection ( feat->getDocument ()->getName (), feat->getNameInDocument () );
+                Gui::Selection ().addSelection ( feat->getDocument ()->getName (), feat->getNameInDocument () );
             }
         } else {
             if ( Gui::Selection ().isSelected (feat) ) {
-                Gui::Selection().rmvSelection ( feat->getDocument ()->getName (), feat->getNameInDocument () );
+                Gui::Selection ().rmvSelection ( feat->getDocument ()->getName (), feat->getNameInDocument () );
             }
         }
     }
@@ -349,7 +365,7 @@ void TreeWidgetBasedFeaturePickerWidget::onSelectionChanged ( const Gui::Selecti
         QTreeWidgetItem *item = featItem.second;
 
         if (selectionSet.find (feat) != selectionSet.end ()) {
-            if ( ! item->treeWidget ()->isItemHidden ( item ) ) {
+            if ( ! item->isHidden ( ) ) {
                 item->setSelected (true);
             }
         } else {
@@ -421,6 +437,9 @@ std::vector <App::DocumentObject *> FeaturePickerSinglePanelWidget::getSelectedF
 }
 
 void FeaturePickerSinglePanelWidget::updateUi() {
+    if (!getPicker ()) {
+        return;
+    }
     const auto & picked = getPicker ()->getPickedFeatures ();
     std::set<App::DocumentObject *> pickedSet (picked.begin(), picked.end());
 
@@ -479,12 +498,12 @@ FeaturePickerDoublePanelWidget::FeaturePickerDoublePanelWidget (
     updateUi ();
 
     connect ( actionSelector, SIGNAL ( selectionChanged () ), this, SIGNAL ( selectionChanged () ) );
+    connect ( actionSelector, SIGNAL ( selectionReordered () ), this, SIGNAL ( selectionChanged () ) );
     connect ( actionSelector->availableTreeWidget(), SIGNAL ( itemSelectionChanged () ),
-            this, SLOT ( update3dSelection () ) );
+          this, SLOT ( update3dSelection () ) );
     connect ( actionSelector->selectedTreeWidget(), SIGNAL ( itemSelectionChanged () ),
             this, SLOT ( update3dSelection () ) );
 }
-
 
 std::vector <App::DocumentObject *> FeaturePickerDoublePanelWidget::getSelectedFeatures () {
     std::vector <App::DocumentObject *> rv;
@@ -527,6 +546,9 @@ void FeaturePickerDoublePanelWidget::updateUi() {
             twItem = createTreeWidgetItem (feat, status);
         }
 
+        // keep selection of items
+        bool selected = twItem->isSelected ();
+
         // move the feature to selected if it is picked
         if (pickedSet.find (feat) != pickedSet.end()) {
             actionSelector->selectItem (twItem);
@@ -538,16 +560,41 @@ void FeaturePickerDoublePanelWidget::updateUi() {
             QTreeWidget * tw = actionSelector->availableTreeWidget ();
             int twIndex = tw->indexOfTopLevelItem (twItem);
             if (twIndex != i) {
-                bool selected = false;
                 if (twItem->treeWidget ()) {
-                    selected = tw == twItem->treeWidget () && twItem->isSelected ();
                     twItem->treeWidget ()->takeTopLevelItem (twIndex);
                 }
                 tw->insertTopLevelItem ( i, twItem );
-                twItem->setSelected ( selected );
             }
             i++;
         }
+        twItem->setSelected ( selected );
+    }
+
+    // assert the order of items in the selected tree widget
+    i=0;
+    for ( auto feat: picked ) {
+        auto featIt = treeItems.left.find (feat);
+
+        assert (featIt != treeItems.left.end ());
+
+        QTreeWidgetItem * twItem = featIt->second;
+        assert (twItem);
+
+        bool selected = twItem->isSelected ();
+
+        QTreeWidget * tw = actionSelector->selectedTreeWidget ();
+        assert (tw && tw == twItem->treeWidget ());
+
+        int twIndex = tw->indexOfTopLevelItem (twItem);
+
+        if (twIndex != i) {
+            tw->takeTopLevelItem (twIndex);
+            tw->insertTopLevelItem ( i, twItem );
+        }
+
+        twItem->setSelected (selected);
+
+        i++;
     }
 
     this->blockSignals (wasBlocked);
@@ -556,7 +603,7 @@ void FeaturePickerDoublePanelWidget::updateUi() {
 }
 
 inline QTreeWidgetItem * FeaturePickerDoublePanelWidget::createTreeWidgetItem (
-        App::DocumentObject *feat, const FeaturePicker::StatusSet &stat)
+            App::DocumentObject *feat, const FeaturePicker::StatusSet &stat)
 {
     return TreeWidgetBasedFeaturePickerWidget::createTreeWidgetItem (
             actionSelector->availableTreeWidget(), feat, stat);

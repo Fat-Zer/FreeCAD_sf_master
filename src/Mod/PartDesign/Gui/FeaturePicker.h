@@ -51,11 +51,11 @@ public:
         otherPart,        ///< Doesn't belongs to current part
         afterTip,         ///< The feature is located after the current Tip
         invalidShape,     ///< Inappropriate shape for the task
+        userSelected,     ///< The feature was previously selected by user
         // BasePlane specific
         basePlane,        ///< Is a baseplane
         // Sketch specific
         noWire,           ///< The featuer (likely sketch) has no wire
-//        userSelected,     ///< The feature is preapprooved (ok)
         FEATURE_STATUS_MAX
     };
 

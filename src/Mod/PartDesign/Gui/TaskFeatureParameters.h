@@ -50,10 +50,19 @@ public:
 
 protected Q_SLOTS:
     // TODO Add update view to all dialogs (2015-12-05, Fat-Zer)
+    // TODO may be rename to setBlockUpdate() or something like that (2016-03-20, Fat-Zer)
     void onUpdateView(bool on);
 
 protected:
+    /**
+     * Return true if the feature can be updated and false otherwise
+     * @note that it's intended to be used if feature is temporary broken or something like that
+     */
+    virtual bool canUpdate () const {return true;};
+
+protected:
     PartDesignGui::ViewProvider *vp;
+    // TODO may be make it private replace it with a virtual canUpdate()? (2016-03-20, Fat-Zer)
     /// Lock updateUI(), applying changes to the underlying feature and calling recomputeFeature()
     bool blockUpdate;
 };

@@ -54,7 +54,7 @@ void TaskFeatureParameters::onUpdateView(bool on)
 
 void TaskFeatureParameters::recomputeFeature()
 {
-    if (!blockUpdate) {
+    if (!blockUpdate && canUpdate ()) {
         App::DocumentObject* obj = vp->getObject ();
         assert (obj);
         obj->getDocument()->recomputeFeature ( obj );
@@ -114,7 +114,7 @@ bool TaskDlgFeatureParameters::accept() {
         Gui::Command::commitCommand();
     } catch (const Base::Exception& e) {
         // Generally the only thing that should fail is feature->isValid() others should be fine
-        QMessageBox::warning( 0, tr("Input error"), QString::fromAscii(e.what()));
+        QMessageBox::warning( 0, tr("Input error"), QString::fromUtf8(e.what()));
         return false;
     }
 

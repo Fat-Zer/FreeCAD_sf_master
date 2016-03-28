@@ -42,7 +42,7 @@ class ViewProvider;
 
 namespace PartDesignGui {
 
-class TaskLoftParameters : public TaskFeatureParameters, public Gui::SelectionObserver
+class TaskLoftParameters : public TaskFeatureParameters
 {
     Q_OBJECT
 
@@ -50,29 +50,23 @@ public:
     TaskLoftParameters(ViewProviderLoft *LoftView,bool newObj=false,QWidget *parent = 0);
     ~TaskLoftParameters();
 
+    /// apply changes made in the parameters input to the model via commands
+    virtual void apply();
+
+    virtual bool canUpdate () const;
+
+    bool getRuled () const;
+    bool getClosed () const;
+    const std::vector <App::DocumentObject *> & getSections () const ;
+
 private Q_SLOTS:
-    void onRefButtonAdd(bool);
-    void onRefButtonRemvove(bool);
     void onClosed(bool);
     void onRuled(bool);
-
-protected:
-    void changeEvent(QEvent *e);
-
-private:
-    void onSelectionChanged(const Gui::SelectionChanges& msg);
-    void updateUI(int index);
-    bool referenceSelected(const Gui::SelectionChanges& msg) const;
-    void removeFromListWidget(QListWidget*w, QString name);
-    void clearButtons();
-    void exitSelectionMode();
+    void onPickedFeaturesChanged();
 
 private:
     QWidget* proxy;
     Ui_TaskLoftParameters* ui;
-
-    enum selectionModes { none, refAdd, refRemove };
-    selectionModes selectionMode = none;
 };
 
 /// simulation dialog for the TaskView
@@ -83,15 +77,6 @@ class TaskDlgLoftParameters : public TaskDlgFeatureParameters
 public:
     TaskDlgLoftParameters(ViewProviderLoft *LoftView,bool newObj=false);
     ~TaskDlgLoftParameters();
-
-    ViewProviderLoft* getLoftView() const
-    { return static_cast<ViewProviderLoft*>(vp); }
-
-    /// is called by the framework if the dialog is accepted (Ok)
-    virtual bool accept();
-
-protected:
-    TaskLoftParameters  *parameter;
 };
 
 } //namespace PartDesignGui

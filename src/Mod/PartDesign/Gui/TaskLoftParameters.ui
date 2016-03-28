@@ -15,6 +15,9 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_3">
    <item>
+    <widget class="PartDesignGui::FeaturePickerDoublePanelWidget" name="pickerWidget" native="true"/>
+   </item>
+   <item>
     <widget class="QCheckBox" name="checkBoxRuled">
      <property name="text">
       <string>Ruled surface</string>
@@ -27,52 +30,6 @@
       <string>Closed</string>
      </property>
     </widget>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_4">
-     <item>
-      <widget class="QToolButton" name="buttonRefAdd">
-       <property name="enabled">
-        <bool>true</bool>
-       </property>
-       <property name="text">
-        <string>Add Section</string>
-       </property>
-       <property name="checkable">
-        <bool>true</bool>
-       </property>
-       <property name="checked">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QToolButton" name="buttonRefRemove">
-       <property name="text">
-        <string>Remove Section</string>
-       </property>
-       <property name="checkable">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <spacer name="horizontalSpacer">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <widget class="QListWidget" name="listWidgetReferences"/>
    </item>
    <item>
     <widget class="Line" name="line">
@@ -93,6 +50,14 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>PartDesignGui::FeaturePickerDoublePanelWidget</class>
+   <extends>QWidget</extends>
+   <header>Mod/PartDesign/Gui/FeaturePickerWidgets.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

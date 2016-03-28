@@ -49,11 +49,17 @@ namespace PartDesignGui
 class AbstractFeaturePickerWidget: public QWidget {
     Q_OBJECT
 public:
-    AbstractFeaturePickerWidget ( FeaturePicker *picker_s, QWidget *parent = 0 );
+    AbstractFeaturePickerWidget ( FeaturePicker *picker_s, QWidget *parent = nullptr );
+    explicit AbstractFeaturePickerWidget ( QWidget *parent = nullptr )
+        :AbstractFeaturePickerWidget ( nullptr, parent ) {}
+
     virtual ~AbstractFeaturePickerWidget () = 0;
 
     /// Returns the list of features selected by the widget
     virtual std::vector <App::DocumentObject *> getSelectedFeatures () = 0;
+
+    /// Set the assotiated picker
+    void setPicker (FeaturePicker *picker_s);
 
     /**
      * If any bit in a feature's status is not set in the visability set when the feature
@@ -87,9 +93,6 @@ public:
 Q_SIGNALS:
     /// The signal should be emitted by derived class when feature selection for picker is changed
     void selectionChanged ();
-
-    /// Emmited when visability for specific status changed
-    void visabilityChanged (PartDesignGui::FeaturePicker::FeatureStatus status, bool state);
 
 public Q_SLOTS:
     /// Update the associated FeaturePicker according to changes inside widget
@@ -131,11 +134,14 @@ class TreeWidgetBasedFeaturePickerWidget: public AbstractFeaturePickerWidget, pr
 public:
     TreeWidgetBasedFeaturePickerWidget ( FeaturePicker *picker_s, QWidget *parent = 0 )
         :AbstractFeaturePickerWidget (picker_s, parent) { }
+    explicit TreeWidgetBasedFeaturePickerWidget ( QWidget *parent = nullptr )
+        :TreeWidgetBasedFeaturePickerWidget ( nullptr, parent ) {}
 
 public Q_SLOTS:
     /// Update the widget according to changes in featurePicker
     virtual void updateUi() {
         update3dSelection ( );
+        AbstractFeaturePickerWidget::updateUi ();
     }
 
     /// Select items in the 3d view according to current selection in a tree widget
@@ -161,9 +167,13 @@ protected:
 class FeaturePickerSinglePanelWidget: public TreeWidgetBasedFeaturePickerWidget {
     Q_OBJECT
 public:
-    FeaturePickerSinglePanelWidget ( FeaturePicker *picker_s, QWidget *parent = 0 )
-        : FeaturePickerSinglePanelWidget (picker_s, false, parent ) {}
     FeaturePickerSinglePanelWidget ( FeaturePicker *picker_s, bool s_multipick, QWidget *parent = 0 );
+    explicit FeaturePickerSinglePanelWidget ( FeaturePicker *picker_s, QWidget *parent = 0 )
+        : FeaturePickerSinglePanelWidget (picker_s, false, parent ) {}
+    explicit FeaturePickerSinglePanelWidget ( QWidget *parent = nullptr )
+        :FeaturePickerSinglePanelWidget ( nullptr, false, parent ) {}
+    explicit FeaturePickerSinglePanelWidget ( bool s_multipick, QWidget *parent = nullptr )
+        :FeaturePickerSinglePanelWidget ( nullptr, s_multipick, parent ) {}
 
     virtual std::vector <App::DocumentObject *> getSelectedFeatures ();
 
@@ -171,11 +181,6 @@ public Q_SLOTS:
     virtual void updateUi();
 
 private:
-    /// Constructs a new tree widget item for the given feature
-    QTreeWidgetItem * createTreeWidgetItem (App::DocumentObject *feat) {
-        return createTreeWidgetItem ( feat, getPicker ()->getStatus ( feat ) );
-    }
-
     /// Constructs a new tree widget item for the given feature
     QTreeWidgetItem * createTreeWidgetItem (App::DocumentObject *feat, const FeaturePicker::StatusSet &stat) {
         return TreeWidgetBasedFeaturePickerWidget::createTreeWidgetItem ( treeWidget, feat, stat);
@@ -194,6 +199,8 @@ class FeaturePickerDoublePanelWidget: public TreeWidgetBasedFeaturePickerWidget 
     Q_OBJECT
 public:
     FeaturePickerDoublePanelWidget ( FeaturePicker *picker_s, QWidget *parent = 0 );
+    explicit FeaturePickerDoublePanelWidget ( QWidget *parent = nullptr )
+        :FeaturePickerDoublePanelWidget ( nullptr, parent ) {}
 
     virtual std::vector <App::DocumentObject *> getSelectedFeatures ();
 
@@ -201,11 +208,6 @@ public Q_SLOTS:
     virtual void updateUi();
 
 private:
-    /// Constructs a new tree widget item for the given feature
-    QTreeWidgetItem * createTreeWidgetItem (App::DocumentObject *feat) {
-        return createTreeWidgetItem ( feat, getPicker ()->getStatus ( feat ) );
-    }
-
     /// Constructs a new tree widget item for the given feature
     inline QTreeWidgetItem * createTreeWidgetItem (
             App::DocumentObject *feat, const FeaturePicker::StatusSet &stat);

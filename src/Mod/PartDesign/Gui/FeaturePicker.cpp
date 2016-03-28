@@ -47,11 +47,15 @@ FeaturePicker::FeaturePicker ( QObject * parent )
 { }
 
 void FeaturePicker::setFeatureStatus( App::DocumentObject *obj, StatusSet status ) {
-
     assert (obj);
 
-    // Remove old values
-    statusMap.insert ( std::make_pair(obj, status) );
+    auto objIt = statusMap.lower_bound(obj);
+
+    if (objIt != statusMap.end() && objIt->first == obj) {
+        objIt->second = status;
+    } else {
+        statusMap.insert ( objIt, std::make_pair (obj, status) );
+    }
 
     Q_EMIT featureStatusSet (obj, status);
 }
@@ -99,11 +103,13 @@ FeaturePicker::StatusSet FeaturePicker::sketchStatus ( App::DocumentObject *obj 
     return rv;
 }
 
-FeaturePicker::StatusSet FeaturePicker::bodyRelationStatus ( App::DocumentObject *obj) {
+FeaturePicker::StatusSet FeaturePicker::bodyRelationStatus ( App::DocumentObject *obj ) {
     return bodyRelationStatus (obj, PartDesignGui::getBody(false) );
 }
 
-FeaturePicker::StatusSet FeaturePicker::bodyRelationStatus ( App::DocumentObject *obj, PartDesign::Body *body ) {
+FeaturePicker::StatusSet FeaturePicker::bodyRelationStatus (
+        App::DocumentObject *obj, PartDesign::Body *body )
+{
     StatusSet rv;
 
     App::Part* activePart =
@@ -131,8 +137,7 @@ FeaturePicker::StatusSet FeaturePicker::bodyRelationStatus ( App::DocumentObject
     return rv;
 }
 
-QString FeaturePicker::getFeatureStatusString ( FeaturePicker::FeatureStatus status )
-{
+QString FeaturePicker::getFeatureStatusString ( FeaturePicker::FeatureStatus status ) {
     switch (status) {
         case validFeature: return tr("Valid");
         case isUsed:       return tr("The feature already used by other");
@@ -140,6 +145,7 @@ QString FeaturePicker::getFeatureStatusString ( FeaturePicker::FeatureStatus sta
         case otherBody:    return tr("The feature belongs to another body");
         case otherPart:    return tr("The feature belongs to another part");
         case afterTip:     return tr("The feature is located after the tip feature");
+        case userSelected: return tr("The feature was preselected by user");
         case basePlane:    return tr("Base plane");
         case invalidShape: return tr("Invalid shape");
         case noWire:       return tr("The sketch has no wire");
