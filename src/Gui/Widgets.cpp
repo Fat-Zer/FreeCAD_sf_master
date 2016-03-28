@@ -200,6 +200,8 @@ ActionSelector::ActionSelector(QWidget* parent)
             this, SLOT(updateButtonsState()) );
     connect(selectedWidget, SIGNAL(itemSelectionChanged()),
             this, SLOT(updateButtonsState()) );
+    connect(this, SIGNAL(selectionChanged()), this, SLOT(updateButtonsState()) );
+    connect(this, SIGNAL(selectionReordered()), this, SLOT(updateButtonsState()) );
     retranslateUi();
     updateButtonsState();
 }
@@ -238,7 +240,7 @@ void ActionSelector::selectItem (int index) {
 }
 
 void ActionSelector::selectItem (QTreeWidgetItem *item) {
-    if (item->treeWidget () != availableWidget ) {
+    if (item->treeWidget () == selectedWidget ) {
         return;
     }
     moveTreeWidgetItem (selectedWidget, item);
@@ -256,7 +258,7 @@ void ActionSelector::unselectItem (int index) {
 }
 
 void ActionSelector::unselectItem (QTreeWidgetItem *item) {
-    if (item->treeWidget () != selectedWidget ) {
+    if (item->treeWidget () == availableWidget ) {
         return;
     }
     moveTreeWidgetItem (availableWidget, item);
@@ -266,7 +268,11 @@ void ActionSelector::unselectItem (QTreeWidgetItem *item) {
 
 inline void ActionSelector::moveTreeWidgetItem (QTreeWidget *to, QTreeWidgetItem *item) {
     QTreeWidget *from = item->treeWidget();
-    moveTreeWidgetItem ( to, from, from->indexOfTopLevelItem (item) );
+    if (from) {
+        moveTreeWidgetItem ( to, from, from->indexOfTopLevelItem (item) );
+    } else {
+        to->addTopLevelItem(item);
+    }
 }
 
 inline void ActionSelector::moveTreeWidgetItem (QTreeWidget *to, QTreeWidget *from, int fromIndex) {
@@ -337,8 +343,8 @@ void ActionSelector::updateButtonsState()
         int indexSelectedMax = indexSelectedMin;
         for (auto itemIt = ++selectedSelection.begin(); itemIt != selectedSelection.end (); ++itemIt) {
             int index = selectedWidget->indexOfTopLevelItem(*itemIt);
-             if (index<indexSelectedMin) {indexSelectedMin=index;
-             } else if (index>indexSelectedMax) {indexSelectedMax=index;}
+             if (index<indexSelectedMin) {indexSelectedMin=index;}
+             else if (index>indexSelectedMax) {indexSelectedMax=index;}
         }
         // test if selection is consequtive from start or end of the widget
         upButton->setEnabled( indexSelectedMin != 0 ||
@@ -381,14 +387,17 @@ void ActionSelector::on_removeButton_clicked()
 
 void ActionSelector::on_upButton_clicked()
 {
-    std::set<int> indexSelection;
-    for (QTreeWidgetItem *item: selectedWidget->selectedItems ()) {
-        int index = selectedWidget->indexOfTopLevelItem(item);
-        assert (index >= 0);
-        indexSelection.insert(index);
-    }
+    auto selection = selectedWidget->selectedItems ();
 
-    if (!indexSelection.empty()) {
+    if (!selection.empty()) {
+        std::set<int> indexSelection;
+
+        for (QTreeWidgetItem *item: selection) {
+            int index = selectedWidget->indexOfTopLevelItem(item);
+            assert (index >= 0);
+            indexSelection.insert(index);
+        }
+
         auto indexIt = indexSelection.begin();
 
         if (*indexIt == 0) {
@@ -401,24 +410,33 @@ void ActionSelector::on_upButton_clicked()
             }
         }
 
-        for (/*itemIt*/; indexIt != indexSelection.end(); ++indexIt ) {
-            QTreeWidgetItem *item = selectedWidget->takeTopLevelItem(*indexIt);
-            selectedWidget->insertTopLevelItem(*indexIt - 1, item);
-            selectedWidget->setItemSelected(item, true);
+        if (indexIt !=  indexSelection.end()) {
+            for (/*itemIt*/; indexIt != indexSelection.end(); ++indexIt ) {
+                // take prev item and insert it on place of current
+                assert(*indexIt > 0 );
+                assert(!selectedWidget->topLevelItem (*indexIt - 1)->isSelected ());
+                QTreeWidgetItem *item = selectedWidget->takeTopLevelItem(*indexIt - 1);
+                selectedWidget->insertTopLevelItem(*indexIt, item);
+            }
+
+            Q_EMIT selectionReordered ();
         }
     }
 }
 
 void ActionSelector::on_downButton_clicked()
 {
-    std::set<int> indexSelection;
-    for (QTreeWidgetItem *item: selectedWidget->selectedItems ()) {
-        int index = selectedWidget->indexOfTopLevelItem(item);
-        assert (index >= 0);
-        indexSelection.insert(index);
-    }
+    auto selection = selectedWidget->selectedItems ();
 
-    if (!indexSelection.empty()) {
+    if (!selection.empty()) {
+        std::set<int> indexSelection;
+
+        for (QTreeWidgetItem *item: selection) {
+            int index = selectedWidget->indexOfTopLevelItem(item);
+            assert (index >= 0);
+            indexSelection.insert(index);
+        }
+
         auto indexIt = indexSelection.rbegin();
 
         if (*indexIt ==  selectedWidget->topLevelItemCount() - 1) {
@@ -431,10 +449,16 @@ void ActionSelector::on_downButton_clicked()
             }
         }
 
-        for (/*itemIt*/; indexIt != indexSelection.rend(); ++indexIt ) {
-            QTreeWidgetItem *item = selectedWidget->takeTopLevelItem(*indexIt);
-            selectedWidget->insertTopLevelItem(*indexIt + 1, item);
-            selectedWidget->setItemSelected(item, true);
+        if (indexIt !=  indexSelection.rend()) {
+            for (/*itemIt*/; indexIt != indexSelection.rend(); ++indexIt ) {
+                // take next item and insert it on place of current
+                assert(*indexIt < selectedWidget->topLevelItemCount() - 1);
+                assert(!selectedWidget->topLevelItem (*indexIt + 1)->isSelected ());
+                QTreeWidgetItem *item = selectedWidget->takeTopLevelItem(*indexIt + 1);
+                selectedWidget->insertTopLevelItem(*indexIt, item);
+            }
+
+            Q_EMIT selectionReordered ();
         }
     }
 }
